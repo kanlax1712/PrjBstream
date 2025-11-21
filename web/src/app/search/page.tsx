@@ -55,9 +55,9 @@ export default async function SearchPage({ searchParams }: Props) {
             { status: "READY" },
             {
               OR: [
-                { title: { contains: searchTerm, mode: "insensitive" } },
-                { description: { contains: searchTerm, mode: "insensitive" } },
-                { tags: { contains: searchTerm, mode: "insensitive" } },
+                { title: { contains: searchTerm } },
+                { description: { contains: searchTerm } },
+                { tags: { contains: searchTerm } },
               ],
             },
           ],
@@ -78,9 +78,9 @@ export default async function SearchPage({ searchParams }: Props) {
       prisma.channel.findMany({
         where: {
           OR: [
-            { name: { contains: searchTerm, mode: "insensitive" } },
-            { handle: { contains: searchTerm, mode: "insensitive" } },
-            { description: { contains: searchTerm, mode: "insensitive" } },
+            { name: { contains: searchTerm } },
+            { handle: { contains: searchTerm } },
+            { description: { contains: searchTerm } },
           ],
         },
         select: {

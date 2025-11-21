@@ -1,6 +1,9 @@
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
 
+// Get DATABASE_URL with fallback for build time
+const databaseUrl = process.env.DATABASE_URL || "file:./dev.db";
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -8,6 +11,6 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: env("DATABASE_URL", "file:./dev.db"), // Fallback for build time
+    url: databaseUrl,
   },
 });

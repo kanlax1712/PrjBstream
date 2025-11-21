@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
           { status: "READY" },
           {
             OR: [
-              { title: { contains: searchTerm, mode: "insensitive" } },
-              { description: { contains: searchTerm, mode: "insensitive" } },
-              { tags: { contains: searchTerm, mode: "insensitive" } },
+              { title: { contains: searchTerm } },
+              { description: { contains: searchTerm } },
+              { tags: { contains: searchTerm } },
             ],
           },
         ],
@@ -44,13 +44,13 @@ export async function GET(request: NextRequest) {
 
     // Search channels by name or handle
     const channels = await prisma.channel.findMany({
-      where: {
-        OR: [
-          { name: { contains: searchTerm, mode: "insensitive" } },
-          { handle: { contains: searchTerm, mode: "insensitive" } },
-          { description: { contains: searchTerm, mode: "insensitive" } },
-        ],
-      },
+        where: {
+          OR: [
+            { name: { contains: searchTerm } },
+            { handle: { contains: searchTerm } },
+            { description: { contains: searchTerm } },
+          ],
+        },
       select: {
         id: true,
         name: true,
