@@ -1,0 +1,23 @@
+[build]
+  command = "cd web && npm install && npx prisma generate && npm run build"
+  publish = "web/.next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+# Next.js configuration
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Redirects for Next.js
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variables (set these in Netlify dashboard)
+# DATABASE_URL
+# NEXTAUTH_URL
+# NEXTAUTH_SECRET
+
