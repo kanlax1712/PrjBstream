@@ -1,6 +1,7 @@
 [build]
   command = "npm install && npx prisma generate && npm run build"
-  # Don't set publish directory - Next.js plugin handles it automatically
+  # Publish directory - Next.js plugin will handle routing, but Netlify UI requires a value
+  publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
