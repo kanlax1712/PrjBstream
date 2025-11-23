@@ -45,13 +45,13 @@ export function VideoPlayer({ video, session, isSubscribed }: Props) {
   }, [video.id]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="relative aspect-video overflow-hidden rounded-3xl border border-white/5 bg-black">
-        <video src={video.videoUrl} controls className="size-full" />
+    <div className="flex flex-col gap-3 sm:gap-4">
+      <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/5 bg-black sm:rounded-3xl">
+        <video src={video.videoUrl} controls className="size-full" playsInline />
       </div>
       <div>
-        <h1 className="text-2xl font-semibold">{video.title}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-white/60">
+        <h1 className="text-lg font-semibold sm:text-2xl">{video.title}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/60 sm:gap-3 sm:text-sm">
           <span>By {video.channel.name}</span>
           <span>•</span>
           <span>{formatRelative(video.publishedAt)}</span>

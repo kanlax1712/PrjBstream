@@ -3,6 +3,7 @@ import type { Session } from "next-auth";
 import { ReactNode } from "react";
 import { TopNav } from "@/components/navigation/top-nav";
 import { Sidebar } from "@/components/navigation/sidebar";
+import { MobileNav } from "@/components/navigation/mobile-nav";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -36,11 +37,12 @@ export async function AppShell({ children, secure = false }: AppShellProps) {
       <Sidebar session={session} channel={channel} />
       <div className="flex flex-col border-l border-white/5">
         <TopNav session={session} channel={channel} />
-        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
+        <main className="flex-1 overflow-y-auto px-4 py-6 pb-20 md:pb-6 md:px-8">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
             {children}
           </div>
         </main>
+        <MobileNav session={session} />
       </div>
     </div>
   );

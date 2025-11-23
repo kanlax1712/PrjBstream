@@ -2,6 +2,8 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { ThumbnailSelector } from "./thumbnail-selector";
+import { formatDuration } from "@/lib/format";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
@@ -19,6 +21,11 @@ export function VideoUploadForm() {
   });
   const [fileError, setFileError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
+  const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
+  const [videoQuality, setVideoQuality] = useState<string>("auto");
+  const [videoDuration, setVideoDuration] = useState<number>(0);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -32,6 +39,14 @@ export function VideoUploadForm() {
     setFileError("");
 
     const formData = new FormData(e.currentTarget);
+    
+    // Add selected thumbnail if available
+    if (thumbnailBlob) {
+      formData.append("thumbnailFile", thumbnailBlob, "thumbnail.jpg");
+    }
+    
+    // Add video quality preference
+    formData.append("videoQuality", videoQuality);
 
     try {
       const response = await fetch("/api/upload-video", {
@@ -55,6 +70,13 @@ export function VideoUploadForm() {
       if (formRef.current) {
         formRef.current.reset();
       }
+      
+      // Reset state
+      setVideoFile(null);
+      setSelectedThumbnail(null);
+      setThumbnailBlob(null);
+      setVideoQuality("auto");
+      setVideoDuration(0);
       
       // Refresh the page to show the new video
       setTimeout(() => {
@@ -106,7 +128,7 @@ export function VideoUploadForm() {
             type="file"
             accept="video/*"
             required
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0];
               if (file) {
                 if (file.size > MAX_FILE_SIZE) {
@@ -114,8 +136,27 @@ export function VideoUploadForm() {
                     `File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds 2GB limit`,
                   );
                   e.target.value = "";
+                  setVideoFile(null);
+                  setVideoDuration(0);
                 } else {
                   setFileError("");
+                  setVideoFile(file);
+                  setSelectedThumbnail(null);
+                  setThumbnailBlob(null);
+                  
+                  // Extract duration from video file
+                  try {
+                    const video = document.createElement("video");
+                    video.preload = "metadata";
+                    video.src = URL.createObjectURL(file);
+                    video.onloadedmetadata = () => {
+                      window.URL.revokeObjectURL(video.src);
+                      const duration = Math.floor(video.duration);
+                      setVideoDuration(duration);
+                    };
+                  } catch (err) {
+                    console.error("Error extracting video duration:", err);
+                  }
                 }
               }
             }}
@@ -128,26 +169,33 @@ export function VideoUploadForm() {
             <p className="mt-1 text-xs text-rose-300">{fileError}</p>
           )}
         </div>
+      </div>
+
+      {/* Thumbnail Selector */}
+      {videoFile && (
         <div>
-          <label className="text-sm text-white/70">
-            Thumbnail file (optional)
+          <label className="text-sm text-white/70 mb-2 block">
+            Select Thumbnail from Video
           </label>
-          <input
-            name="thumbnailFile"
-            type="file"
-            accept="image/*"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm file:mr-3 file:rounded-xl file:border-none file:bg-white/10 file:px-3 file:py-1 file:text-white focus:border-cyan-400 focus:outline-none"
+          <ThumbnailSelector
+            videoFile={videoFile}
+            onThumbnailSelect={(blob, timestamp) => {
+              setThumbnailBlob(blob);
+              const url = URL.createObjectURL(blob);
+              setSelectedThumbnail(url);
+            }}
+            selectedThumbnail={selectedThumbnail}
           />
-          <p className="mt-1 text-xs text-white/40">
-            Or paste a remote thumbnail URL below.
+          <p className="mt-2 text-xs text-white/40">
+            Choose a frame from your video or use the quick select thumbnails below.
           </p>
         </div>
-      </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
           <label className="text-sm text-white/70">
-            Thumbnail URL (optional)
+            Thumbnail URL (optional - alternative to video frame)
           </label>
           <input
             name="thumbnailUrl"
@@ -161,10 +209,15 @@ export function VideoUploadForm() {
           <input
             name="duration"
             type="number"
-            min={5}
+            value={videoDuration}
+            readOnly
             required
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm focus:border-cyan-400 focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 focus:border-cyan-400 focus:outline-none"
           />
+          <p className="mt-1 text-xs text-white/40">
+            Automatically extracted from video file
+            {videoDuration > 0 && ` (${formatDuration(videoDuration)})`}
+          </p>
         </div>
         <div>
           <label className="text-sm text-white/70">Tags</label>

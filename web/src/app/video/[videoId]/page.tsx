@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { VideoPlayer } from "@/components/video/video-player";
+import { EnhancedVideoPlayer } from "@/components/video/enhanced-video-player";
 import { CommentList } from "@/components/video/comment-list";
 import { VideoGrid } from "@/components/video/video-grid";
 import { AddToPlaylistButton } from "@/components/playlists/add-to-playlist-button";
@@ -78,16 +78,16 @@ export default async function VideoDetailPage({ params }: Props) {
 
   return (
     <AppShell>
-      <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-6">
-          <VideoPlayer
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8">
+        <div className="space-y-4 sm:space-y-6">
+          <EnhancedVideoPlayer
             video={video}
             session={session}
             isSubscribed={isSubscribed}
           />
           {session?.user && userPlaylists.length > 0 && (
-            <div className="rounded-3xl border border-white/5 bg-white/[0.03] p-4">
-              <h3 className="mb-3 text-sm font-semibold">Add to Playlist</h3>
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-3 sm:rounded-3xl sm:p-4">
+              <h3 className="mb-2 text-xs font-semibold sm:mb-3 sm:text-sm">Add to Playlist</h3>
               <AddToPlaylistButton videoId={videoId} playlists={userPlaylists} />
             </div>
           )}
@@ -97,8 +97,8 @@ export default async function VideoDetailPage({ params }: Props) {
             session={session}
           />
         </div>
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">More like this</h2>
+        <div className="space-y-3 sm:space-y-4">
+          <h2 className="text-base font-semibold sm:text-lg">More like this</h2>
           <VideoGrid videos={suggestions} />
         </div>
       </div>

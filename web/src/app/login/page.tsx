@@ -30,9 +30,23 @@ function LoginForm() {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
+
+    // Client-side validation
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      return;
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     startTransition(async () => {
       const response = await signIn("credentials", {
-        email,
+        email: email.toLowerCase().trim(), // Sanitize email client-side
         password,
         redirect: false,
       });

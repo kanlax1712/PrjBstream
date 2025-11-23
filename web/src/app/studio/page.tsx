@@ -56,18 +56,27 @@ export default async function StudioPage() {
                 <Link
                   key={video.id}
                   href={`/video/${video.id}`}
-                  className="rounded-3xl border border-white/5 bg-white/[0.03] p-4 transition hover:border-cyan-400/40"
+                  className="flex gap-4 rounded-3xl border border-white/5 bg-white/[0.03] p-4 transition hover:border-cyan-400/40"
                 >
-                  <p className="text-base font-semibold">{video.title}</p>
-                  <p className="text-sm text-white/60 line-clamp-2">
-                    {video.description}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-white/50">
-                    <span>Status: {video.status.toLowerCase()}</span>
-                    <span>•</span>
-                    <span>{formatRelative(video.publishedAt)}</span>
-                    <span>•</span>
-                    <span>{(video.duration / 60).toFixed(0)} min</span>
+                  <div className="relative aspect-video w-32 flex-shrink-0 overflow-hidden rounded-xl bg-black sm:w-40">
+                    <img
+                      src={video.thumbnailUrl}
+                      alt={video.title}
+                      className="size-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-semibold">{video.title}</p>
+                    <p className="mt-1 text-sm text-white/60 line-clamp-2">
+                      {video.description}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-white/50">
+                      <span>Status: {video.status.toLowerCase()}</span>
+                      <span>•</span>
+                      <span>{formatRelative(video.publishedAt)}</span>
+                      <span>•</span>
+                      <span>{(video.duration / 60).toFixed(0)} min</span>
+                    </div>
                   </div>
                 </Link>
               ))}

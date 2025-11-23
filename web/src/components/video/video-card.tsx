@@ -23,7 +23,7 @@ export function VideoCard({ video }: VideoCardProps) {
   return (
     <Link
       href={`/video/${video.id}`}
-      className="group flex flex-col gap-3 rounded-3xl border border-white/5 bg-white/[0.03] p-3 transition hover:border-cyan-400/40 hover:bg-white/[0.06]"
+      className="group flex flex-col gap-2 rounded-2xl border border-white/5 bg-white/[0.03] p-2 transition hover:border-cyan-400/40 hover:bg-white/[0.06] sm:gap-3 sm:rounded-3xl sm:p-3"
     >
       <div className="relative overflow-hidden rounded-2xl">
         <Image

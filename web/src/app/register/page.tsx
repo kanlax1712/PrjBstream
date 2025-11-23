@@ -60,8 +60,19 @@ export default function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    // Enhanced password validation
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (!/[a-zA-Z]/.test(formData.password)) {
+      setError("Password must contain at least one letter");
+      return;
+    }
+
+    if (!/[0-9]/.test(formData.password)) {
+      setError("Password must contain at least one number");
       return;
     }
 
@@ -185,9 +196,9 @@ export default function RegisterPage() {
                 setFormData({ ...formData, password: e.target.value })
               }
               required
-              minLength={6}
+              minLength={8}
               className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm focus:border-cyan-400 focus:outline-none"
-              placeholder="At least 6 characters"
+              placeholder="At least 8 characters with letters and numbers"
             />
           </div>
 

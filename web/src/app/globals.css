@@ -27,3 +27,115 @@ body {
   background-color: hsla(var(--accent), 0.35);
   color: hsl(var(--foreground));
 }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px; /* iOS recommended touch target */
+    min-width: 44px;
+  }
+}
+
+/* Prevent text size adjustment on iOS */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Smooth scrolling for mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Better scrolling on mobile */
+body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area insets for notched devices */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Video player fullscreen styles */
+.video-player-container:fullscreen {
+  background: black;
+  border: none;
+  border-radius: 0;
+}
+
+.video-player-container:-webkit-full-screen {
+  background: black;
+  border: none;
+  border-radius: 0;
+}
+
+.video-player-container:-moz-full-screen {
+  background: black;
+  border: none;
+  border-radius: 0;
+}
+
+.video-player-container:-ms-fullscreen {
+  background: black;
+  border: none;
+  border-radius: 0;
+}
+
+/* Video element fullscreen styles */
+video:fullscreen {
+  background: black;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+}
+
+video:-webkit-full-screen {
+  background: black;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+}
+
+video:-moz-full-screen {
+  background: black;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+}
+
+video:-ms-fullscreen {
+  background: black;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+}
+
+/* Touch-friendly controls for mobile */
+@media (max-width: 768px) {
+  .video-player-container .absolute {
+    /* Ensure controls are always accessible on mobile */
+    opacity: 1 !important;
+  }
+  
+  /* Larger touch targets for mobile */
+  .video-player-container button {
+    min-width: 48px;
+    min-height: 48px;
+  }
+}
