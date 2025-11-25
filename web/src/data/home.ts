@@ -34,7 +34,7 @@ export async function getHomeFeed() {
           select: { id: true },
         },
       },
-      take: 20, // Limit to prevent large queries
+      take: 100, // Show more videos on home page
     });
 
     const playlists = await prisma.playlist.findMany({

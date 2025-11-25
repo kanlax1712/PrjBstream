@@ -75,9 +75,18 @@ export function UserMenu({ session, channel }: Props) {
             </Link>
             <button
               className="rounded-xl px-3 py-2 text-left text-rose-300 transition hover:bg-white/5"
-              onClick={() => {
+              onClick={async () => {
                 setOpen(false);
-                signOut({ callbackUrl: "/" });
+                try {
+                  await signOut({ 
+                    callbackUrl: "/",
+                    redirect: true 
+                  });
+                } catch (error) {
+                  console.error("Sign out error:", error);
+                  // Force redirect if signOut fails
+                  window.location.href = "/";
+                }
               }}
             >
               Sign out
