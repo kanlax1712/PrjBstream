@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppSessionProvider } from "@/components/providers/session-provider";
 import { PWAInstallPrompt } from "@/components/pwa/pwa-install-prompt";
+import { Chatbot } from "@/components/chatbot/chatbot";
 import { auth } from "@/lib/auth";
 import Script from "next/script";
 import "./globals.css";
@@ -21,13 +22,6 @@ export const metadata: Metadata = {
   description:
     "Creator-first video streaming platform for publishing, discovery, and live experiences.",
   manifest: "/manifest.json",
-  themeColor: "#06b6d4",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -42,6 +36,14 @@ export const metadata: Metadata = {
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
   },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: "#06b6d4",
 };
 
 export default async function RootLayout({
@@ -73,6 +75,7 @@ export default async function RootLayout({
         <AppSessionProvider session={session}>
           {children}
           <PWAInstallPrompt />
+          <Chatbot />
         </AppSessionProvider>
         <Script id="register-sw" strategy="afterInteractive">
           {`

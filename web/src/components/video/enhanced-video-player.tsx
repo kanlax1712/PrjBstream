@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Settings, Download, PictureInPicture, Play, Pause, Maximize, Minimize } from "lucide-react";
 import { formatDuration, formatRelative } from "@/lib/format";
 import { SubscribeButton } from "@/components/video/subscribe-button";
+import { VideoAd } from "@/components/video/video-ad";
 import type { Session } from "next-auth";
 
 type Props = {
@@ -15,11 +16,16 @@ type Props = {
     duration: number;
     tags: string;
     publishedAt: Date;
+    hasAds?: boolean;
     channel: {
       id: string;
       name: string;
       handle: string;
     };
+    qualities?: {
+      quality: string;
+      videoUrl: string;
+    }[];
   };
   session: Session | null;
   isSubscribed: boolean;
@@ -50,44 +56,108 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   const [videoError, setVideoError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  // Initialize ad state based on video.hasAds to avoid hydration mismatch
+  const [showAd, setShowAd] = useState(() => {
+    // Only show ad on client side to avoid hydration mismatch
+    if (typeof window === "undefined") return false;
+    return video.hasAds === true;
+  });
+  const [adCompleted, setAdCompleted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
-  // Get video URL - use API route for better mobile compatibility
-  const getVideoUrl = (useDirect = false) => {
-    // If it's already an external URL, use it
-    if (video.videoUrl.startsWith("http://") || video.videoUrl.startsWith("https://")) {
-      return video.videoUrl;
-    }
+  // Mark as client-side after mount
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Show ad when video has ads enabled (only on client)
+  useEffect(() => {
+    if (!isClient) return;
     
-    // Use direct URL as fallback or if requested
-    if (useDirect) {
-      if (video.videoUrl.startsWith("/")) {
-        return typeof window !== "undefined" 
-          ? `${window.location.origin}${video.videoUrl}`
-          : video.videoUrl;
+    if (video.hasAds && !adCompleted) {
+      setShowAd(true);
+      // Pause video while ad is showing and prevent loading
+      if (videoRef.current) {
+        videoRef.current.pause();
+        // Prevent video from trying to load while ad is showing
+        videoRef.current.load();
       }
-      return video.videoUrl;
+    } else {
+      setShowAd(false);
+    }
+  }, [video.hasAds, adCompleted, isClient]);
+
+  // Get video URL - handle both external and local videos
+  const getVideoUrl = (useDirect = false) => {
+    // Validate video URL
+    if (!video.videoUrl || video.videoUrl.trim() === "") {
+      console.error("Video URL is empty or invalid");
+      return `/api/video/${video.id}/stream`;
+    }
+
+    const url = video.videoUrl.trim();
+    
+    // If it's already an external URL (http/https), use it directly
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
     }
     
-    // Use API route for streaming (better for mobile with proper headers)
-    return `/api/video/${video.id}/stream`;
+    // For local files, use direct URL
+    if (url.startsWith("/")) {
+      return typeof window !== "undefined" 
+        ? `${window.location.origin}${url}`
+        : url;
+    }
+    
+    // Fallback: try API route for local files only
+    if (!useDirect) {
+      return `/api/video/${video.id}/stream`;
+    }
+    
+    // If URL doesn't start with /, it might be a relative path - make it absolute
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/${url.startsWith("/") ? url.slice(1) : url}`;
+    }
+    
+    return url;
   };
 
-  // Initialize video source - use API route by default, fallback to direct URL
-  const [videoSrc, setVideoSrc] = useState<string>(() => getVideoUrl());
+  // Initialize video source - always use API route to proxy external URLs and avoid CORS issues
+  const [videoSrc, setVideoSrc] = useState<string>(() => {
+    // Always use API route which handles both external and local videos
+    // This avoids CORS issues and URL safety checks
+    return `/api/video/${video.id}/stream`;
+  });
 
   // Update video source when video changes
   useEffect(() => {
-    const url = getVideoUrl();
-    setVideoSrc(url);
+    // Don't load video if ad is showing - wait until ad completes
+    if (showAd && !adCompleted) {
+      return;
+    }
+    
+    // Always use API route which proxies external URLs to avoid CORS and security issues
+    const finalUrl = `/api/video/${video.id}/stream`;
+    
+    console.log("Setting video source:", { 
+      originalUrl: video.videoUrl, 
+      finalUrl, 
+      videoId: video.id 
+    });
+    
+    setVideoSrc(finalUrl);
     setRetryCount(0);
     setVideoError(null);
     setIsLoading(true);
     
     if (videoRef.current) {
-      videoRef.current.src = url;
+      // Set crossOrigin for API route
+      videoRef.current.crossOrigin = "anonymous";
+      // Set src attribute
+      videoRef.current.src = finalUrl;
       videoRef.current.load();
     }
-  }, [video.id, video.videoUrl]);
+  }, [video.id, video.videoUrl, showAd, adCompleted]);
 
   // Track view when video starts playing
   useEffect(() => {
@@ -123,15 +193,26 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     videoElement.addEventListener("pause", handlePause);
     videoElement.addEventListener("ended", handleEnded);
 
-    // Fullscreen change listener
+    // Fullscreen change listener - check multiple ways for Safari compatibility
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement ||
+        (videoElement as any).webkitDisplayingFullscreen
+      );
+      setIsFullscreen(isFullscreen);
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
     document.addEventListener("mozfullscreenchange", handleFullscreenChange);
     document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+    
+    // Safari-specific fullscreen events
+    videoElement.addEventListener("webkitbeginfullscreen", handleFullscreenChange);
+    videoElement.addEventListener("webkitendfullscreen", handleFullscreenChange);
 
     return () => {
       videoElement.removeEventListener("timeupdate", updateTime);
@@ -143,6 +224,8 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
       document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
       document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
       document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+      videoElement.removeEventListener("webkitbeginfullscreen", handleFullscreenChange);
+      videoElement.removeEventListener("webkitendfullscreen", handleFullscreenChange);
     };
   }, []);
 
@@ -162,12 +245,53 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   }, [showSettings]);
 
   const togglePlayPause = () => {
+    // Don't allow playback if ad is showing
+    if (showAd && !adCompleted) {
+      return;
+    }
+    
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
         videoRef.current.play();
       }
+    }
+  };
+
+  const handleAdComplete = () => {
+    setShowAd(false);
+    setAdCompleted(true);
+    // Load video after ad completes
+    if (videoRef.current) {
+      const finalUrl = `/api/video/${video.id}/stream`;
+      videoRef.current.crossOrigin = "anonymous";
+      videoRef.current.src = finalUrl;
+      videoRef.current.load();
+      // Don't auto-play - browser blocks autoplay without user interaction
+      // The play button will be visible for user to click
+      // This is expected behavior - user must interact to play
+    }
+  };
+
+  const handleAdSkip = () => {
+    setShowAd(false);
+    setAdCompleted(true);
+    // Load and play video after ad is skipped (skip button click = user interaction)
+    if (videoRef.current) {
+      const finalUrl = `/api/video/${video.id}/stream`;
+      videoRef.current.crossOrigin = "anonymous";
+      videoRef.current.src = finalUrl;
+      videoRef.current.load();
+      // Skip button click counts as user interaction, so we can play
+      videoRef.current.addEventListener("canplay", () => {
+        if (videoRef.current) {
+          videoRef.current.play().catch((err) => {
+            console.error("Error playing video after ad skip:", err);
+            // If play fails, user can click play button
+          });
+        }
+      }, { once: true });
     }
   };
 
@@ -187,10 +311,28 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     }
   };
 
-  const handleQualityChange = (quality: string) => {
+  const handleQualityChange = async (quality: string) => {
     setSelectedQuality(quality);
-    // TODO: Switch video source based on quality
-    // For now, this is a placeholder - in production, you'd switch the video source
+    
+    // Switch video source based on quality
+    if (quality === "auto") {
+      // Use original video URL or API route
+      const url = getVideoUrl();
+      setVideoSrc(url);
+      if (videoRef.current) {
+        videoRef.current.src = url;
+        videoRef.current.load();
+      }
+    } else {
+      // Use quality-specific API route
+      const qualityUrl = `/api/video/${video.id}/quality/${quality}`;
+      setVideoSrc(qualityUrl);
+      if (videoRef.current) {
+        videoRef.current.src = qualityUrl;
+        videoRef.current.load();
+      }
+    }
+    
     console.log("Quality changed to:", quality);
   };
 
@@ -275,6 +417,15 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
       <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/5 bg-black sm:rounded-3xl group video-player-container">
+        {/* Ad Overlay - Only show on client to avoid hydration mismatch */}
+        {isClient && showAd && !adCompleted && video.hasAds && (
+          <VideoAd
+            onComplete={handleAdComplete}
+            onSkip={handleAdSkip}
+            duration={5}
+          />
+        )}
+        
         <video
           ref={videoRef}
           src={videoSrc || undefined}
@@ -283,14 +434,25 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           preload="metadata"
           controls={false}
           muted={false}
+          style={{ display: isClient && showAd && !adCompleted ? "none" : "block" }}
           onLoadedMetadata={() => {
             if (videoRef.current) {
               setDuration(videoRef.current.duration);
               setIsLoading(false);
               setVideoError(null);
+              // Don't auto-play if ad is showing
+              if (showAd && !adCompleted) {
+                videoRef.current.pause();
+              }
             }
           }}
           onError={(e) => {
+            // Ignore errors while ad is showing - video will load after ad completes
+            if (showAd && !adCompleted) {
+              console.log("Video error during ad playback - will retry after ad completes");
+              return;
+            }
+            
             const error = videoRef.current?.error;
             
             console.error("Video error:", {
@@ -304,10 +466,28 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               retryCount,
             });
             
-            // Try fallback to direct URL if API route fails (max 1 retry)
-            if (retryCount === 0 && videoSrc.includes("/api/video/")) {
-              console.log("API route failed, trying direct URL fallback");
-              const fallbackUrl = getVideoUrl(true);
+            // Try fallback strategies
+            if (retryCount === 0) {
+              let fallbackUrl: string;
+              
+              // If API route failed, try direct external URL as fallback
+              if (video.videoUrl.startsWith("http://") || video.videoUrl.startsWith("https://")) {
+                console.log("API route failed, trying direct external URL fallback");
+                fallbackUrl = video.videoUrl;
+                // Remove crossOrigin for direct external URLs
+                if (videoRef.current) {
+                  videoRef.current.removeAttribute("crossorigin");
+                  videoRef.current.crossOrigin = null;
+                }
+              } else {
+                // For local files, retry API route
+                console.log("API route failed, retrying");
+                fallbackUrl = `/api/video/${video.id}/stream`;
+                if (videoRef.current) {
+                  videoRef.current.crossOrigin = "anonymous";
+                }
+              }
+              
               setVideoSrc(fallbackUrl);
               setRetryCount(1);
               if (videoRef.current) {
@@ -352,11 +532,34 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           }}
           onWaiting={() => setIsLoading(true)}
           onPlaying={() => {
+            // Don't allow playback if ad is showing
+            if (showAd && !adCompleted) {
+              if (videoRef.current) {
+                videoRef.current.pause();
+              }
+              return;
+            }
             setIsLoading(false);
             setVideoError(null);
           }}
         >
-          <source src={videoSrc} type="video/mp4" />
+          {/* Fallback source tags for maximum browser compatibility */}
+          {videoSrc && videoSrc !== "/video" && (
+            <>
+              <source src={videoSrc} type="video/mp4" />
+              <source src={videoSrc} />
+            </>
+          )}
+          {/* Original URL as additional fallback (only if different and valid) */}
+          {video.videoUrl && 
+           video.videoUrl !== videoSrc && 
+           video.videoUrl !== "/video" &&
+           (video.videoUrl.startsWith("http") || video.videoUrl.startsWith("/")) && (
+            <>
+              <source src={video.videoUrl} type="video/mp4" />
+              <source src={video.videoUrl} />
+            </>
+          )}
           Your browser does not support the video tag.
         </video>
         
@@ -463,7 +666,16 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               </button>
 
               {showSettings && (
-                <div className="absolute bottom-full right-0 mb-2 w-52 max-h-[70vh] overflow-y-auto rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md z-50">
+                <div 
+                  className={`absolute bottom-full right-0 mb-2 w-52 max-h-[70vh] overflow-y-auto rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md ${
+                    isFullscreen ? 'z-[9999]' : 'z-50'
+                  }`}
+                  style={isFullscreen ? {
+                    position: 'fixed',
+                    bottom: '80px',
+                    right: '20px',
+                  } : undefined}
+                >
                   {/* Quality Selector */}
                   <div className="mb-3">
                     <label className="mb-1.5 block text-xs font-semibold text-white/70">

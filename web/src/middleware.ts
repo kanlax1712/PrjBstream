@@ -24,9 +24,11 @@ export const middleware = (request: NextRequest) => {
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // 'unsafe-eval' needed for Next.js
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
+    "img-src 'self' data: https: blob:",
+    "media-src 'self' blob: https:",
     "font-src 'self' data:",
-    "connect-src 'self'",
+    "connect-src 'self' https: blob:", // Allow service worker network requests
+    "worker-src 'self' blob:", // Allow service workers
     "frame-ancestors 'self'",
   ].join("; ");
 

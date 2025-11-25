@@ -28,9 +28,18 @@ const navItems = [
 export function Sidebar({ session, channel }: SidebarProps) {
   return (
     <aside className="hidden h-full flex-col border-r border-white/5 bg-slate-950/40 px-4 py-6 md:flex">
-      <Link href="/" className="mb-8 flex items-center gap-2 font-semibold">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-cyan-400/20 text-cyan-300">
-          <span className="text-lg font-bold">B</span>
+      <Link href="/" className="mb-8 flex items-center gap-2 font-semibold" prefetch={false}>
+        <div className="relative size-8 overflow-hidden rounded-lg">
+          <Image
+            src="/BS.png?v=1"
+            alt="Bstream"
+            width={32}
+            height={32}
+            sizes="32px"
+            className="object-contain"
+            unoptimized
+            priority
+          />
         </div>
         Bstream
       </Link>

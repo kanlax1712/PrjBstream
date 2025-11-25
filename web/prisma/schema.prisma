@@ -82,11 +82,31 @@ model Video {
   visibility    VideoVisibility  @default(PUBLIC)
   status        VideoStatus      @default(READY)
   publishedAt   DateTime         @default(now())
+  hasAds        Boolean          @default(false)
   channelId     String
   channel       Channel          @relation(fields: [channelId], references: [id])
   comments      Comment[]
   playlistItems PlaylistVideo[]
   views         ViewEvent[]
+  qualities     VideoQuality[]
+}
+
+model VideoQuality {
+  id        String   @id @default(cuid())
+  videoId   String
+  quality   String   // "480p", "720p", "1080p", "1440p", "2160p", "original"
+  videoUrl  String
+  bitrate   Int?     // Bitrate in kbps
+  width     Int?     // Video width in pixels
+  height    Int?     // Video height in pixels
+  fileSize  Int?     // File size in bytes
+  status    String   @default("processing") // "processing", "ready", "failed"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, quality])
+  @@index([videoId])
 }
 
 model Comment {

@@ -2,7 +2,26 @@ import { prisma } from "@/lib/prisma";
 
 export async function getHomeFeed() {
   try {
+    // Check if prisma is available
+    if (!prisma) {
+      console.warn("Prisma client not available");
+      return {
+        hero: null,
+        secondary: [],
+        playlists: [],
+        counts: {
+          videos: 0,
+          channels: 0,
+          communityComments: 0,
+        },
+      };
+    }
+
     const videos = await prisma.video.findMany({
+      where: {
+        visibility: "PUBLIC",
+        status: "READY",
+      },
       orderBy: { publishedAt: "desc" },
       include: {
         channel: {
@@ -15,6 +34,7 @@ export async function getHomeFeed() {
           select: { id: true },
         },
       },
+      take: 20, // Limit to prevent large queries
     });
 
     const playlists = await prisma.playlist.findMany({

@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { VideoGrid } from "@/components/video/video-grid";
+import { SearchBar } from "@/components/search/search-bar";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import Image from "next/image";
@@ -105,6 +106,11 @@ export default async function SearchPage({ searchParams }: Props) {
   return (
     <AppShell>
       <div className="space-y-8">
+        {/* Search Bar - visible on mobile */}
+        <div className="sm:hidden">
+          <SearchBar defaultValue={query} />
+        </div>
+
         {query ? (
           <>
             <div>

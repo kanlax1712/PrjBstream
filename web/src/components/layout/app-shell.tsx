@@ -13,24 +13,35 @@ type AppShellProps = {
 };
 
 export async function AppShell({ children, secure = false }: AppShellProps) {
-  const session = (await auth()) as Session | null;
+  let session: Session | null = null;
+  let channel = null;
+
+  try {
+    session = (await auth()) as Session | null;
+  } catch (error) {
+    console.error("Error fetching session in AppShell:", error);
+  }
 
   if (secure && !session?.user) {
     redirect("/login");
   }
 
-  const channel =
-    session?.user?.id
-      ? await prisma.channel.findFirst({
-          where: { ownerId: session.user.id },
-          select: {
-            id: true,
-            name: true,
-            handle: true,
-            avatarUrl: true,
-          },
-        })
-      : null;
+  try {
+    if (session?.user?.id) {
+      channel = await prisma.channel.findFirst({
+        where: { ownerId: session.user.id },
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching channel in AppShell:", error);
+    // Continue without channel if database query fails
+  }
 
   return (
     <div className="grid min-h-screen bg-slate-950 text-white md:grid-cols-[220px_1fr]">

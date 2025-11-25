@@ -26,6 +26,7 @@ export function VideoUploadForm() {
   const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
   const [videoQuality, setVideoQuality] = useState<string>("auto");
   const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [hasAds, setHasAds] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,6 +41,18 @@ export function VideoUploadForm() {
 
     const formData = new FormData(e.currentTarget);
     
+    // Ensure duration is set (use extracted or form value)
+    const durationValue = videoDuration > 0 ? videoDuration : parseInt(formData.get("duration")?.toString() || "0");
+    if (durationValue <= 0) {
+      setState({ 
+        success: false, 
+        message: "Please ensure video duration is set (minimum 5 seconds). The duration should be automatically detected from the video file." 
+      });
+      setIsUploading(false);
+      return;
+    }
+    formData.set("duration", durationValue.toString());
+    
     // Add selected thumbnail if available
     if (thumbnailBlob) {
       formData.append("thumbnailFile", thumbnailBlob, "thumbnail.jpg");
@@ -47,6 +60,9 @@ export function VideoUploadForm() {
     
     // Add video quality preference
     formData.append("videoQuality", videoQuality);
+    
+    // Add hasAds preference
+    formData.append("hasAds", hasAds ? "true" : "false");
 
     try {
       const response = await fetch("/api/upload-video", {
@@ -77,6 +93,7 @@ export function VideoUploadForm() {
       setThumbnailBlob(null);
       setVideoQuality("auto");
       setVideoDuration(0);
+      setHasAds(false);
       
       // Refresh the page to show the new video
       setTimeout(() => {
@@ -148,14 +165,45 @@ export function VideoUploadForm() {
                   try {
                     const video = document.createElement("video");
                     video.preload = "metadata";
-                    video.src = URL.createObjectURL(file);
-                    video.onloadedmetadata = () => {
-                      window.URL.revokeObjectURL(video.src);
-                      const duration = Math.floor(video.duration);
-                      setVideoDuration(duration);
+                    const objectUrl = URL.createObjectURL(file);
+                    video.src = objectUrl;
+                    
+                    const handleLoadedMetadata = () => {
+                      if (video.duration && isFinite(video.duration)) {
+                        const duration = Math.floor(video.duration);
+                        setVideoDuration(duration);
+                        console.log("Video duration extracted:", duration, "seconds");
+                      } else {
+                        console.warn("Invalid video duration, setting to 0");
+                        setVideoDuration(0);
+                      }
+                      window.URL.revokeObjectURL(objectUrl);
+                      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+                      video.removeEventListener("error", handleError);
                     };
+                    
+                    const handleError = () => {
+                      console.error("Error loading video metadata");
+                      setVideoDuration(0);
+                      window.URL.revokeObjectURL(objectUrl);
+                      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+                      video.removeEventListener("error", handleError);
+                    };
+                    
+                    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+                    video.addEventListener("error", handleError);
+                    
+                    // Fallback timeout in case metadata doesn't load
+                    setTimeout(() => {
+                      if (video.duration && isFinite(video.duration)) {
+                        const duration = Math.floor(video.duration);
+                        setVideoDuration(duration);
+                      }
+                      window.URL.revokeObjectURL(objectUrl);
+                    }, 5000);
                   } catch (err) {
                     console.error("Error extracting video duration:", err);
+                    setVideoDuration(0);
                   }
                 }
               }
@@ -209,14 +257,21 @@ export function VideoUploadForm() {
           <input
             name="duration"
             type="number"
-            value={videoDuration}
-            readOnly
+            min="5"
+            step="1"
+            value={videoDuration || ""}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || 0;
+              setVideoDuration(value);
+            }}
             required
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 focus:border-cyan-400 focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm focus:border-cyan-400 focus:outline-none"
+            placeholder="Auto-detected from video"
           />
           <p className="mt-1 text-xs text-white/40">
-            Automatically extracted from video file
-            {videoDuration > 0 && ` (${formatDuration(videoDuration)})`}
+            {videoDuration > 0 
+              ? `Auto-detected: ${formatDuration(videoDuration)} (editable)` 
+              : "Duration will be extracted from video file, or enter manually"}
           </p>
         </div>
         <div>
@@ -227,6 +282,22 @@ export function VideoUploadForm() {
             placeholder="streaming, creator"
           />
         </div>
+      </div>
+
+      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <input
+          type="checkbox"
+          id="hasAds"
+          checked={hasAds}
+          onChange={(e) => setHasAds(e.target.checked)}
+          className="h-4 w-4 rounded border-white/20 bg-transparent text-cyan-500 focus:ring-cyan-400 focus:ring-offset-0"
+        />
+        <label htmlFor="hasAds" className="flex-1 cursor-pointer text-sm text-white/80">
+          <span className="font-medium">Include 10-second ad before video</span>
+          <span className="ml-2 text-xs text-white/50">
+            (Monetize your content with pre-roll advertising)
+          </span>
+        </label>
       </div>
 
       <button
