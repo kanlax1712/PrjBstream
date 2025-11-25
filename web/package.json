@@ -11,6 +11,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "node prisma/seed.mjs",
     "db:seed-videos": "node scripts/seed-test-videos.mjs",
+    "db:upload-videos": "node scripts/upload-videos-to-vercel.mjs",
     "postinstall": "prisma generate"
   },
   "prisma": {
