@@ -5,6 +5,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -65,14 +66,23 @@ async function main() {
 
   try {
     // Get or create a test user
-    const testUser = await prisma.user.findFirst({
+    let testUser = await prisma.user.findFirst({
       where: { email: "creator@bstream.dev" },
     });
 
     if (!testUser) {
-      console.log("❌ Test user 'creator@bstream.dev' not found.");
-      console.log("   Please create a user first or run: npm run db:seed");
-      process.exit(1);
+      console.log("👤 Creating test user 'creator@bstream.dev'...");
+      const passwordHash = await bcrypt.hash("watchmore", 10);
+      testUser = await prisma.user.create({
+        data: {
+          email: "creator@bstream.dev",
+          name: "Bstream Creator",
+          passwordHash,
+          bio: "Creator account for sample videos",
+          image: "https://api.dicebear.com/9.x/initials/svg?seed=Bstream",
+        },
+      });
+      console.log(`✅ Created user: ${testUser.name}\n`);
     }
 
     console.log(`✅ Found user: ${testUser.name} (${testUser.email})\n`);
