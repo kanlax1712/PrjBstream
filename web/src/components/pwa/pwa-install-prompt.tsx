@@ -42,9 +42,17 @@ export function PWAInstallPrompt() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
+    setDeferredPrompt(null);
     // Don't show again for this session
     sessionStorage.setItem("pwa-prompt-dismissed", "true");
   };
+
+  // Check if already dismissed
+  useEffect(() => {
+    if (sessionStorage.getItem("pwa-prompt-dismissed")) {
+      setShowPrompt(false);
+    }
+  }, []);
 
   if (!showPrompt || sessionStorage.getItem("pwa-prompt-dismissed")) {
     return null;
@@ -57,10 +65,22 @@ export function PWAInstallPrompt() {
           <Download className="size-5 text-cyan-400" />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-semibold text-white">Install Bstream</h3>
-          <p className="mt-1 text-xs text-white/70">
-            Install our app for a better experience on your device
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-white">Install Bstream</h3>
+              <p className="mt-1 text-xs text-white/70">
+                Install our app for a better experience on your device
+              </p>
+            </div>
+            <button
+              onClick={handleDismiss}
+              className="flex-shrink-0 rounded-full p-1 text-white/50 transition hover:bg-white/10 hover:text-white"
+              aria-label="Close"
+              title="Close"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
           <div className="mt-3 flex gap-2">
             <button
               onClick={handleInstall}
@@ -70,9 +90,9 @@ export function PWAInstallPrompt() {
             </button>
             <button
               onClick={handleDismiss}
-              className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 transition hover:bg-white/10"
+              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70 transition hover:bg-white/10"
             >
-              <X className="size-4" />
+              Later
             </button>
           </div>
         </div>

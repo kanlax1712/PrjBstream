@@ -162,15 +162,48 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const channel = await prisma.channel.findFirst({
+    // Get or create channel for user
+    let channel = await prisma.channel.findFirst({
       where: { ownerId: session.user.id },
     });
 
+    // Auto-create channel if it doesn't exist
     if (!channel) {
-      return NextResponse.json(
-        { success: false, message: "Channel not found for this user." },
-        { status: 404 }
-      );
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { name: true, email: true },
+      });
+
+      if (!user) {
+        return NextResponse.json(
+          { success: false, message: "User not found." },
+          { status: 404 }
+        );
+      }
+
+      // Generate a unique handle from user's name/email
+      const baseHandle = user.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .substring(0, 20);
+      
+      let handle = baseHandle;
+      let counter = 1;
+      
+      // Ensure handle is unique
+      while (await prisma.channel.findUnique({ where: { handle } })) {
+        handle = `${baseHandle}-${counter}`;
+        counter++;
+      }
+
+      channel = await prisma.channel.create({
+        data: {
+          name: `${user.name}'s Channel`,
+          handle: handle,
+          description: `Welcome to ${user.name}'s channel`,
+          ownerId: session.user.id,
+        },
+      });
     }
 
     let storedVideoUrl: string;
