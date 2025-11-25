@@ -6,6 +6,7 @@ import path from "path";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteFile } from "@/lib/storage";
 
 const uploadDir = path.join(process.cwd(), "public", "uploads");
 
@@ -151,6 +152,149 @@ export async function createVideoAction(
     return {
       success: false,
       message: `Upload failed: ${errorMessage}`,
+    };
+  }
+}
+
+export async function deleteVideo(videoId: string) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user) {
+      return { success: false, message: "You must be logged in to delete videos." };
+    }
+
+    // Get the video and check ownership
+    const video = await prisma.video.findUnique({
+      where: { id: videoId },
+      include: {
+        channel: {
+          select: {
+            ownerId: true,
+          },
+        },
+      },
+    });
+
+    if (!video) {
+      return { success: false, message: "Video not found." };
+    }
+
+    // Check if the current user owns the video (through channel ownership)
+    if (video.channel.ownerId !== session.user.id) {
+      return { success: false, message: "You don't have permission to delete this video." };
+    }
+
+    // Delete all quality versions first
+    try {
+      const qualities = await prisma.videoQuality.findMany({
+        where: { videoId },
+      });
+
+      for (const quality of qualities) {
+        try {
+          await deleteFile(quality.videoUrl);
+        } catch (fileError) {
+          console.error(`Error deleting quality file ${quality.quality}:`, fileError);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting quality files:", error);
+      // Continue with deletion even if quality files fail
+    }
+
+    // Delete video file from storage (works with both local and Vercel Blob)
+    try {
+      await deleteFile(video.videoUrl);
+    } catch (fileError) {
+      console.error("Error deleting video file:", fileError);
+      // Continue with database deletion even if file deletion fails
+    }
+
+    // Delete thumbnail file from storage
+    try {
+      if (video.thumbnailUrl && !video.thumbnailUrl.startsWith("http")) {
+        await deleteFile(video.thumbnailUrl);
+      }
+    } catch (fileError) {
+      console.error("Error deleting thumbnail file:", fileError);
+      // Continue with database deletion even if file deletion fails
+    }
+
+    // Delete related records first to avoid foreign key constraints
+    // Delete in order: qualities -> views -> comments -> playlist items -> video
+    
+    // Delete quality records
+    try {
+      const videoQualityModel = (prisma as any).videoQuality;
+      if (videoQualityModel && typeof videoQualityModel.deleteMany === 'function') {
+        await videoQualityModel.deleteMany({
+          where: { videoId },
+        });
+      }
+    } catch (error: any) {
+      console.error("Error deleting video qualities:", error);
+      // Continue even if this fails
+    }
+
+    // Delete view events
+    try {
+      const viewEventModel = (prisma as any).viewEvent;
+      if (viewEventModel && typeof viewEventModel.deleteMany === 'function') {
+        await viewEventModel.deleteMany({
+          where: { videoId },
+        });
+      }
+    } catch (error: any) {
+      console.error("Error deleting view events:", error);
+      // Continue even if this fails
+    }
+
+    // Delete comments
+    try {
+      const commentModel = (prisma as any).comment;
+      if (commentModel && typeof commentModel.deleteMany === 'function') {
+        await commentModel.deleteMany({
+          where: { videoId },
+        });
+      }
+    } catch (error: any) {
+      console.error("Error deleting comments:", error);
+      // Continue even if this fails
+    }
+
+    // Delete playlist items
+    try {
+      const playlistVideoModel = (prisma as any).playlistVideo;
+      if (playlistVideoModel && typeof playlistVideoModel.deleteMany === 'function') {
+        await playlistVideoModel.deleteMany({
+          where: { videoId },
+        });
+      }
+    } catch (error: any) {
+      console.error("Error deleting playlist videos:", error);
+      // Continue even if this fails
+    }
+
+    // Finally delete the video
+    await prisma.video.delete({
+      where: { id: videoId },
+    });
+
+    // Revalidate relevant paths
+    revalidatePath("/studio");
+    revalidatePath("/");
+    revalidatePath(`/video/${videoId}`);
+
+    return { success: true, message: "Video deleted successfully." };
+  } catch (error: any) {
+    console.error("Delete video error:", error);
+    const errorMessage = error?.message || "Failed to delete video.";
+    return { 
+      success: false, 
+      message: errorMessage.includes("Foreign key") 
+        ? "Cannot delete video: It may be referenced by playlists or other records."
+        : errorMessage 
     };
   }
 }

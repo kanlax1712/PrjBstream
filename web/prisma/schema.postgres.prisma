@@ -1,0 +1,193 @@
+// This is a PostgreSQL version of the schema for Vercel deployment
+// Copy this to schema.prisma when deploying to Vercel
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VideoVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum VideoStatus {
+  DRAFT
+  PROCESSING
+  READY
+}
+
+model User {
+  id            String          @id @default(cuid())
+  name          String
+  email         String          @unique
+  passwordHash  String
+  image         String?
+  bio           String?
+  age           Int?
+  gender        String?
+  location      String?
+  country       String?
+  city          String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  channels      Channel[]
+  comments      Comment[]
+  subscriptions Subscription[]
+  playlists     Playlist[]
+  accounts      Account[]
+  sessions      Session[]
+  viewEvents    ViewEvent[]
+}
+
+model Channel {
+  id            String          @id @default(cuid())
+  name          String
+  handle        String          @unique
+  description   String?
+  avatarUrl     String?
+  bannerUrl     String?
+  ownerId       String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  owner         User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  videos        Video[]
+  subscribers   Subscription[]
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  channelId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelId])
+}
+
+model Video {
+  id            String           @id @default(cuid())
+  title         String
+  description   String
+  videoUrl      String           @unique
+  thumbnailUrl  String
+  duration      Int
+  tags          String
+  visibility    VideoVisibility  @default(PUBLIC)
+  status        VideoStatus      @default(READY)
+  publishedAt   DateTime         @default(now())
+  hasAds        Boolean          @default(false)
+  channelId     String
+  channel       Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  comments      Comment[]
+  playlistItems PlaylistVideo[]
+  views         ViewEvent[]
+  qualities     VideoQuality[]
+}
+
+model VideoQuality {
+  id        String   @id @default(cuid())
+  videoId   String
+  quality   String   // "480p", "720p", "1080p", "1440p", "2160p", "original"
+  videoUrl  String
+  bitrate   Int?     // Bitrate in kbps
+  width     Int?     // Video width in pixels
+  height    Int?     // Video height in pixels
+  fileSize  Int?     // File size in bytes
+  status    String   @default("processing") // "processing", "ready", "failed"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, quality])
+  @@index([videoId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  videoId   String
+  authorId  String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Playlist {
+  id          String          @id @default(cuid())
+  title       String          @unique
+  description String?
+  isPublic    Boolean         @default(true)
+  ownerId     String
+  owner       User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  videos      PlaylistVideo[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model PlaylistVideo {
+  id         String   @id @default(cuid())
+  playlistId String
+  videoId    String
+  order      Int
+  addedAt    DateTime @default(now())
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, videoId])
+}
+
+model ViewEvent {
+  id        String   @id @default(cuid())
+  videoId   String
+  viewerId  String?
+  watchedAt DateTime @default(now())
+  device    String?
+  country   String?
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  viewer    User?    @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+

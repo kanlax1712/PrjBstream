@@ -5,33 +5,17 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { uploadFile } from "@/lib/storage";
 
 const uploadDir = path.join(process.cwd(), "public", "uploads");
 
 const videoSchema = z.object({
   title: z.string().min(3).max(120),
   description: z.string().min(10),
-  thumbnailUrl: z.string().url().optional(),
+  thumbnailUrl: z.string().optional(), // Allow any string (URL or data URI or file path)
   duration: z.number().min(5),
   tags: z.string().optional(),
 });
-
-async function persistFile(file: File, prefix: string) {
-  await fs.mkdir(uploadDir, { recursive: true });
-  const ext = path.extname(file.name) || ".mp4";
-  const normalized = file.name
-    .replace(ext, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-");
-  const filename = `${prefix}-${Date.now()}-${normalized}${ext}`;
-  const filepath = path.join(uploadDir, filename);
-  
-  // Use streaming for large files
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await fs.writeFile(filepath, buffer);
-  
-  return `/uploads/${filename}`;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,6 +34,7 @@ export async function POST(request: NextRequest) {
     const thumbnailUrl = formData.get("thumbnailUrl");
     const duration = formData.get("duration");
     const tags = formData.get("tags");
+    const hasAds = formData.get("hasAds") === "true";
 
     if (!title || !description) {
       return NextResponse.json(
@@ -135,7 +120,7 @@ export async function POST(request: NextRequest) {
     const thumbnailFile = formData.get("thumbnailFile");
     if (thumbnailFile instanceof File && thumbnailFile.size > 0) {
       try {
-        finalThumbnailUrl = await persistFile(thumbnailFile, "thumb");
+        finalThumbnailUrl = await uploadFile(thumbnailFile, "thumb");
       } catch (err) {
         console.error("Thumbnail upload failed:", err);
         return NextResponse.json(
@@ -145,11 +130,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If no thumbnail provided, extract from video (fallback)
+    // If no thumbnail provided, create a default placeholder file
     // Note: In production, you might want to extract a frame server-side using FFmpeg
     if (!finalThumbnailUrl) {
-      console.log("No thumbnail provided, using default placeholder");
-      finalThumbnailUrl = "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80";
+      console.log("No thumbnail provided, creating default placeholder");
+      try {
+        // Create a simple placeholder SVG file
+        const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450">
+          <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <rect width="800" height="450" fill="url(#grad)" />
+          <text x="50%" y="50%" font-family="Arial" font-size="24" fill="white" text-anchor="middle" dominant-baseline="middle">No Thumbnail</text>
+        </svg>`;
+        
+        const placeholderFilename = `thumb-${Date.now()}-placeholder.svg`;
+        const placeholderPath = path.join(uploadDir, placeholderFilename);
+        await fs.writeFile(placeholderPath, placeholderSvg, "utf-8");
+        finalThumbnailUrl = `/uploads/${placeholderFilename}`;
+      } catch (err) {
+        console.error("Failed to create placeholder thumbnail:", err);
+        // Fallback to a simple relative path
+        finalThumbnailUrl = "/uploads/default-thumbnail.svg";
+      }
     }
 
     const channel = await prisma.channel.findFirst({
@@ -165,8 +171,8 @@ export async function POST(request: NextRequest) {
 
     let storedVideoUrl: string;
     try {
-      // Store original video
-      storedVideoUrl = await persistFile(videoFile, "video");
+      // Store original video (uses local filesystem or Vercel Blob based on environment)
+      storedVideoUrl = await uploadFile(videoFile, "video");
       
       // TODO: Video transcoding to multiple qualities
       // In production, implement:
@@ -196,18 +202,45 @@ export async function POST(request: NextRequest) {
         duration: parsed.data.duration,
         tags: parsed.data.tags ?? "",
         status: "READY",
+        hasAds: hasAds,
         channelId: channel.id,
       },
     });
 
     console.log("Video created successfully:", { id: video.id, title: video.title });
 
+    // Trigger transcoding in the background (non-blocking)
+    // This will create multiple quality versions using FFmpeg
+    try {
+      // Check if FFmpeg is available before triggering transcoding
+      const { checkFFmpegAvailable } = await import("@/lib/video/transcode");
+      const ffmpegAvailable = await checkFFmpegAvailable();
+      
+      if (ffmpegAvailable) {
+        // Trigger transcoding asynchronously (don't wait for it)
+        fetch(`${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/video/${video.id}/transcode`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }).catch((err) => {
+          console.error("Failed to trigger transcoding:", err);
+          // Non-critical error, video is still uploaded
+        });
+      } else {
+        console.log("FFmpeg not available, skipping transcoding. Video uploaded but only original quality available.");
+      }
+    } catch (error) {
+      console.error("Error triggering transcoding:", error);
+      // Non-critical error, video is still uploaded
+    }
+
     revalidatePath("/");
     revalidatePath("/studio");
 
     return NextResponse.json({
       success: true,
-      message: `Video "${video.title}" uploaded successfully!`,
+      message: `Video "${video.title}" uploaded successfully! Transcoding to multiple qualities in progress...`,
       videoId: video.id,
     });
   } catch (error) {
