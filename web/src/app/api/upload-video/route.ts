@@ -17,6 +17,10 @@ const videoSchema = z.object({
   tags: z.string().optional(),
 });
 
+// Increase body size limit for large video uploads
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();

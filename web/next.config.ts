@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
     ],
     dangerouslyAllowSVG: true,
   },
+  // Increase body size limit for video uploads (2GB = 2147483648 bytes)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2gb',
+    },
+  },
 };
 
 export default nextConfig;
