@@ -4,6 +4,7 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["iad1"],
+  "rootDirectory": "web",
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 300
