@@ -50,7 +50,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // Only handle same-origin GET requests
+  // Only handle same-origin GET requests - skip POST/PUT/DELETE
+  if (request.method !== 'GET') {
+    return; // Skip non-GET requests entirely
+  }
+  
   event.respondWith(
     caches.match(request)
       .then((response) => {

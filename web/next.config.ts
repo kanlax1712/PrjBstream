@@ -12,9 +12,12 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.blob.vercel-storage.com" },
       { protocol: "https", hostname: "via.placeholder.com" },
       { protocol: "https", hostname: "i.ytimg.com" }, // YouTube thumbnails
+      { protocol: "https", hostname: "*.ytimg.com" }, // All YouTube image domains
     ],
     dangerouslyAllowSVG: true,
     unoptimized: false, // Keep optimization but allow unoptimized for specific images
+    // Allow unoptimized for local SVG files
+    formats: ['image/avif', 'image/webp'],
   },
   // Increase body size limit for video uploads (2GB = 2147483648 bytes)
   experimental: {

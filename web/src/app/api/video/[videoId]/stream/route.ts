@@ -43,6 +43,14 @@ export async function GET(
       );
     }
 
+    // Skip YouTube videos - they should use iframe embed, not stream API
+    if (video.videoUrl.includes("youtube.com") || video.videoUrl.includes("youtu.be")) {
+      return NextResponse.json(
+        { error: "YouTube videos must be played via iframe embed, not stream API" },
+        { status: 400 }
+      );
+    }
+
     // Handle external URLs - proxy through our API to avoid CORS and security issues
     if (video.videoUrl.startsWith("http://") || video.videoUrl.startsWith("https://")) {
       const range = request.headers.get("range");

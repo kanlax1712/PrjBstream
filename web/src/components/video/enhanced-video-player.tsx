@@ -204,9 +204,9 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
 
   // Initialize video source - use API route for non-YouTube videos
   const [videoSrc, setVideoSrc] = useState<string>(() => {
-    // YouTube videos use iframe, not video element
+    // YouTube videos use iframe, not video element - don't set videoSrc
     if (isYouTubeVideo()) {
-      return "";
+      return ""; // Empty string - will use iframe instead
     }
     // Always use API route which handles both external and local videos
     // This avoids CORS issues and URL safety checks
