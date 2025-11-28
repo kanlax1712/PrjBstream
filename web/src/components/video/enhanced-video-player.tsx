@@ -13,6 +13,7 @@ type Props = {
     title: string;
     description: string;
     videoUrl: string;
+    thumbnailUrl?: string | null;
     duration: number;
     tags: string;
     publishedAt: Date;
@@ -57,6 +58,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   const [videoError, setVideoError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const [showThumbnail, setShowThumbnail] = useState(true); // Show thumbnail until video plays
   // Initialize ad state based on video.hasAds to avoid hydration mismatch
   const [showAd, setShowAd] = useState(() => {
     // Only show ad on client side to avoid hydration mismatch
@@ -313,8 +315,13 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             if (data.info === 1) {
               setIsPlaying(true);
               setVideoError(null); // Clear any previous errors
+              setShowThumbnail(false); // Hide thumbnail when YouTube video starts playing
             } else if (data.info === 2 || data.info === 0) {
               setIsPlaying(false);
+              if (data.info === 0) {
+                // Video ended
+                setShowThumbnail(true); // Show thumbnail again when video ends
+              }
             } else if (data.info === -1) {
               // Video unstarted - might be loading or error
               setIsLoading(true);
@@ -360,9 +367,15 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
 
     const updateTime = () => setCurrentTime(videoElement.currentTime);
     const updateDuration = () => setDuration(videoElement.duration);
-    const handlePlay = () => setIsPlaying(true);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      setShowThumbnail(false); // Hide thumbnail when video starts playing
+    };
     const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => setIsPlaying(false);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setShowThumbnail(true); // Show thumbnail again when video ends
+    };
 
     videoElement.addEventListener("timeupdate", updateTime);
     videoElement.addEventListener("loadedmetadata", updateDuration);
@@ -884,6 +897,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                 try {
                   setIsLoading(false);
                   setVideoError(null);
+                  // Keep thumbnail visible until user clicks play (YouTube handles its own thumbnail)
                   // Mark iframe as ready for postMessage after a short delay
                   // This ensures the iframe is fully initialized
                   setTimeout(() => {
@@ -938,11 +952,57 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           </>
         )}
         
-        {/* Regular video element (for non-YouTube videos) */}
-        {!youtubeEmbedUrl && (
+        {/* Thumbnail overlay (YouTube-style) - shows before video plays */}
+        {showThumbnail && !isLoading && !videoError && (
+          <div 
+            className="absolute inset-0 z-10 flex items-center justify-center bg-black"
+            style={{ display: isClient && showAd && !adCompleted ? "none" : "block" }}
+          >
+            {(() => {
+              // Get thumbnail URL - handle YouTube, regular videos, and defaults
+              let thumbnailUrl: string | null = null;
+              
+              if (isYouTubeVideo()) {
+                // For YouTube, use YouTube thumbnail API
+                const videoId = getYouTubeVideoId();
+                if (videoId) {
+                  thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+                }
+              } else if (video.thumbnailUrl && !video.thumbnailUrl.includes("placeholder") && !video.thumbnailUrl.startsWith("data:")) {
+                // Use provided thumbnail
+                thumbnailUrl = video.thumbnailUrl;
+              } else {
+                // Default thumbnail
+                thumbnailUrl = "/uploads/default-thumbnail.svg";
+              }
+              
+              return thumbnailUrl ? (
+                <img
+                  src={thumbnailUrl}
+                  alt={video.title}
+                  className="size-full object-cover"
+                />
+              ) : null;
+            })()}
+            {/* Play button overlay */}
+            {!isPlaying && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex size-20 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm transition hover:bg-black/80">
+                  <Play className="size-10 text-white" />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Regular video element (for non-YouTube videos only) */}
+        {!isYouTubeVideo() && videoSrc && !videoSrc.includes("youtube.com") && !videoSrc.includes("youtu.be") && (
           <video
           ref={videoRef}
-          src={videoSrc || undefined}
+          src={videoSrc}
+          poster={video.thumbnailUrl && !video.thumbnailUrl.includes("placeholder") && !video.thumbnailUrl.startsWith("data:")
+            ? video.thumbnailUrl
+            : undefined}
           className="size-full"
           playsInline
           preload="metadata"
@@ -970,6 +1030,12 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               return;
             }
             
+            // Skip error handling for YouTube videos - they use iframe, not video element
+            if (isYouTubeVideo()) {
+              console.log("Video error for YouTube video - this should not happen as YouTube uses iframe");
+              return;
+            }
+            
             const error = videoRef.current?.error;
             
             console.error("Video error:", {
@@ -983,11 +1049,19 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               retryCount,
             });
             
-            // Try fallback strategies
+            // Try fallback strategies (only for non-YouTube videos)
             if (retryCount === 0) {
               let fallbackUrl: string;
               
-              // If API route failed, try direct external URL as fallback
+              // Never use YouTube URLs as fallback - they must use iframe
+              if (video.videoUrl.includes("youtube.com") || video.videoUrl.includes("youtu.be")) {
+                console.error("Cannot use YouTube URL as video source - must use iframe");
+                setVideoError("YouTube videos must be played via iframe. Please refresh the page.");
+                setIsLoading(false);
+                return;
+              }
+              
+              // If API route failed, try direct external URL as fallback (only for non-YouTube)
               if (video.videoUrl.startsWith("http://") || video.videoUrl.startsWith("https://")) {
                 console.log("API route failed, trying direct external URL fallback");
                 fallbackUrl = video.videoUrl;
@@ -1058,6 +1132,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             }
             setIsLoading(false);
             setVideoError(null);
+            setShowThumbnail(false); // Hide thumbnail when video starts playing
           }}
         >
           {/* Fallback source tags for maximum browser compatibility */}
@@ -1067,10 +1142,12 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               <source src={videoSrc} />
             </>
           )}
-          {/* Original URL as additional fallback (only if different and valid) */}
+          {/* Original URL as additional fallback (only if different and valid, and NOT YouTube) */}
           {video.videoUrl && 
            video.videoUrl !== videoSrc && 
            video.videoUrl !== "/video" &&
+           !video.videoUrl.includes("youtube.com") &&
+           !video.videoUrl.includes("youtu.be") &&
            (video.videoUrl.startsWith("http") || video.videoUrl.startsWith("/")) && (
             <>
               <source src={video.videoUrl} type="video/mp4" />

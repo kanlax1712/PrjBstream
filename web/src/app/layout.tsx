@@ -82,13 +82,14 @@ export default async function RootLayout({
               window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                   .then((reg) => {
-                    // Only log in development
-                    if (process.env.NODE_ENV === 'development') {
+                    // Service worker registered successfully
+                    // Only log in development (localhost)
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                       console.log('Service Worker registered successfully', reg);
                     }
                   })
                   .catch((err) => {
-                    // Always log errors
+                    // Always log errors for debugging
                     console.error('Service Worker registration failed:', err);
                   });
               });
