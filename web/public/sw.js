@@ -43,7 +43,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // Only handle same-origin requests
+  // Skip non-GET requests (POST, PUT, DELETE, etc.)
+  // Cache API only supports GET requests
+  if (request.method !== 'GET') {
+    // Let the browser handle non-GET requests normally
+    return;
+  }
+  
+  // Only handle same-origin GET requests
   event.respondWith(
     caches.match(request)
       .then((response) => {
@@ -55,8 +62,8 @@ self.addEventListener('fetch', (event) => {
         // Fetch from network and cache for same-origin requests only
         return fetch(request)
           .then((networkResponse) => {
-            // Only cache successful same-origin responses
-            if (networkResponse && networkResponse.status === 200) {
+            // Only cache successful same-origin GET responses
+            if (networkResponse && networkResponse.status === 200 && request.method === 'GET') {
               const responseToCache = networkResponse.clone();
               caches.open(CACHE_NAME)
                 .then((cache) => {

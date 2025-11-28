@@ -3,7 +3,9 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ThumbnailSelector } from "./thumbnail-selector";
+import { YoutubeImportButton } from "./youtube-import-button";
 import { formatDuration } from "@/lib/format";
+import { Upload, Pencil, FileVideo } from "lucide-react";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
@@ -27,6 +29,7 @@ export function VideoUploadForm() {
   const [videoQuality, setVideoQuality] = useState<string>("auto");
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [hasAds, setHasAds] = useState<boolean>(false);
+  const [uploadMethod, setUploadMethod] = useState<"local" | "youtube">("local");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -116,6 +119,44 @@ export function VideoUploadForm() {
       onSubmit={handleSubmit}
       className="space-y-4 rounded-3xl border border-white/5 bg-white/[0.03] p-6"
     >
+      {/* Upload Method Selection */}
+      <div className="space-y-3">
+        <label className="text-sm font-medium text-white/70">Upload Method</label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setUploadMethod("local")}
+            className={`flex items-center justify-center gap-3 rounded-2xl border-2 p-4 transition ${
+              uploadMethod === "local"
+                ? "border-cyan-400 bg-cyan-500/10 text-cyan-300"
+                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20"
+            }`}
+          >
+            <Pencil className="size-5" />
+            <span className="font-medium">Upload from Device</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setUploadMethod("youtube")}
+            className={`flex items-center justify-center gap-3 rounded-2xl border-2 p-4 transition ${
+              uploadMethod === "youtube"
+                ? "border-cyan-400 bg-cyan-500/10 text-cyan-300"
+                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20"
+            }`}
+          >
+            {/* YouTube Icon - Free SVG from web */}
+            <svg className="size-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+            <span className="font-medium">Import from YouTube</span>
+          </button>
+        </div>
+      </div>
+
+      {uploadMethod === "youtube" ? (
+        <YoutubeImportButton />
+      ) : (
+        <>
       <div>
         <label className="text-sm text-white/70">Title</label>
         <input
@@ -316,6 +357,8 @@ export function VideoUploadForm() {
         >
           {fileError || state.message}
         </p>
+      )}
+        </>
       )}
     </form>
   );

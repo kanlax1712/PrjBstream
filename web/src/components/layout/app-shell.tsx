@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import { TopNav } from "@/components/navigation/top-nav";
 import { Sidebar } from "@/components/navigation/sidebar";
 import { MobileNav } from "@/components/navigation/mobile-nav";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth-wrapper";
 import { prisma } from "@/lib/prisma";
 
 type AppShellProps = {
@@ -17,7 +17,7 @@ export async function AppShell({ children, secure = false }: AppShellProps) {
   let channel = null;
 
   try {
-    session = (await auth()) as Session | null;
+    session = (await getSession()) as Session | null;
   } catch (error) {
     console.error("Error fetching session in AppShell:", error);
   }

@@ -78,14 +78,36 @@ export function UserMenu({ session, channel }: Props) {
               onClick={async () => {
                 setOpen(false);
                 try {
+                  // Clear all NextAuth cookies
+                  document.cookie.split(";").forEach((c) => {
+                    const cookieName = c.trim().split("=")[0];
+                    if (cookieName.includes("next-auth") || cookieName.includes("session")) {
+                      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                    }
+                  });
+                  
+                  // Sign out and redirect
                   await signOut({ 
                     callbackUrl: "/",
                     redirect: true 
                   });
+                  
+                  // Force hard reload to clear any cached session data
+                  setTimeout(() => {
+                    window.location.href = "/";
+                    window.location.reload();
+                  }, 100);
                 } catch (error) {
                   console.error("Sign out error:", error);
-                  // Force redirect if signOut fails
+                  // Force redirect and clear cookies
+                  document.cookie.split(";").forEach((c) => {
+                    const cookieName = c.trim().split("=")[0];
+                    if (cookieName.includes("next-auth") || cookieName.includes("session")) {
+                      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                    }
+                  });
                   window.location.href = "/";
+                  window.location.reload();
                 }
               }}
             >

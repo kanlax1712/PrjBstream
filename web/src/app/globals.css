@@ -274,3 +274,71 @@ video:-ms-fullscreen {
 .animate-pulse-once {
   animation: pulse-once 2s ease-in-out;
 }
+
+/* Settings Panel Scrollbar Styles */
+.settings-panel-scroll {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.2);
+}
+
+.settings-panel-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.settings-panel-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  margin: 4px 0;
+}
+
+.settings-panel-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  transition: background 0.2s;
+}
+
+.settings-panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Ensure scrolling works on mobile */
+.settings-panel-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Settings menu container scrollbar (backward compatibility) */
+.settings-menu-container > div {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.2);
+}
+
+.settings-menu-container > div::-webkit-scrollbar {
+  width: 10px;
+}
+
+.settings-menu-container > div::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  margin: 4px 0;
+}
+
+.settings-menu-container > div::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  transition: background 0.2s;
+}
+
+.settings-menu-container > div::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Ensure scrolling works on mobile */
+.settings-menu-container > div {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}

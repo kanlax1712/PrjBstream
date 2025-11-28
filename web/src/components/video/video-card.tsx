@@ -25,9 +25,11 @@ export function VideoCard({ video }: VideoCardProps) {
       href={`/video/${video.id}`}
       className="group flex flex-col gap-2 rounded-2xl border border-white/5 bg-white/[0.03] p-2 transition hover:border-cyan-400/40 hover:bg-white/[0.06] sm:gap-3 sm:rounded-3xl sm:p-3"
     >
-      <div className="relative overflow-hidden rounded-2xl">
+      <div className="relative overflow-hidden rounded-2xl bg-slate-900">
         <Image
-          src={video.thumbnailUrl}
+          src={video.thumbnailUrl && !video.thumbnailUrl.includes("placeholder") && !video.thumbnailUrl.startsWith("data:") 
+            ? video.thumbnailUrl 
+            : "/uploads/default-thumbnail.svg"}
           alt={video.title}
           width={640}
           height={360}

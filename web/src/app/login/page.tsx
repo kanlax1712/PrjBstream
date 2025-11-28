@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { SocialLoginButtons } from "@/components/auth/social-login-buttons";
 
 function LoginForm() {
   const params = useSearchParams();
@@ -16,6 +17,7 @@ function LoginForm() {
 
   const callbackUrl = params.get("callbackUrl") ?? "/";
   const registered = params.get("registered") === "true";
+  const oauthError = params.get("error");
 
   useEffect(() => {
     if (registered) {
@@ -25,7 +27,17 @@ function LoginForm() {
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [registered]);
+    if (oauthError) {
+      // Handle OAuth errors
+      const errorMessages: Record<string, string> = {
+        Configuration: "OAuth configuration error. Please check your Google OAuth settings.",
+        AccessDenied: "Access denied. Please make sure you're added as a test user in Google Cloud Console.",
+        Verification: "Email verification required.",
+        Default: "OAuth sign-in failed. Please try again.",
+      };
+      setError(errorMessages[oauthError] || errorMessages.Default);
+    }
+  }, [registered, oauthError]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -45,18 +57,32 @@ function LoginForm() {
     }
 
     startTransition(async () => {
-      const response = await signIn("credentials", {
-        email: email.toLowerCase().trim(), // Sanitize email client-side
-        password,
-        redirect: false,
-      });
+      try {
+        const response = await signIn("credentials", {
+          email: email.toLowerCase().trim(), // Sanitize email client-side
+          password,
+          redirect: false,
+        });
 
-      if (response?.error) {
-        setError(response.error);
-        return;
+        if (response?.error) {
+          // NextAuth returns error in response.error
+          setError(response.error === "CredentialsSignin" 
+            ? "Invalid email or password. Please check your credentials and try again."
+            : response.error
+          );
+          return;
+        }
+
+        // Success - redirect
+        if (response?.ok) {
+          router.push(callbackUrl);
+          router.refresh(); // Refresh to update session
+        }
+      } catch (err: any) {
+        // Handle any unexpected errors
+        console.error("Login error:", err);
+        setError(err?.message || "An error occurred during login. Please try again.");
       }
-
-      router.push(callbackUrl);
     });
   };
 
@@ -106,13 +132,22 @@ function LoginForm() {
           >
             {pending ? "Signing in..." : "Sign In"}
           </button>
-          <p className="text-center text-sm text-white/60">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-cyan-300 hover:underline">
-              Create one
-            </Link>
-          </p>
         </form>
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/10"></div>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white/5 px-2 text-white/50">Or sign in with</span>
+          </div>
+        </div>
+        <SocialLoginButtons callbackUrl={callbackUrl} />
+        <p className="text-center text-sm text-white/60">
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="text-cyan-300 hover:underline">
+            Create one
+          </Link>
+        </p>
       </div>
     </div>
   );

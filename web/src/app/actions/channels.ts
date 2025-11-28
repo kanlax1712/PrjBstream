@@ -18,14 +18,7 @@ export async function createChannel(formData: FormData) {
       return { success: false, message: "Please sign in to create a channel." };
     }
 
-    // Check if user already has a channel
-    const existingChannel = await prisma.channel.findFirst({
-      where: { ownerId: session.user.id },
-    });
-
-    if (existingChannel) {
-      return { success: false, message: "You already have a channel. Each user can only have one channel." };
-    }
+    // Allow users to create multiple channels - removed restriction
 
     const name = formData.get("name");
     const handle = formData.get("handle");

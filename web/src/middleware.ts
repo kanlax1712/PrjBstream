@@ -29,6 +29,7 @@ export const middleware = (request: NextRequest) => {
     "font-src 'self' data:",
     "connect-src 'self' https: blob:", // Allow service worker network requests
     "worker-src 'self' blob:", // Allow service workers
+    "frame-src 'self' https://www.youtube.com https://youtube.com", // Allow YouTube iframes
     "frame-ancestors 'self'",
   ].join("; ");
 

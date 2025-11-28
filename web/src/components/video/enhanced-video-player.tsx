@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Settings, Download, PictureInPicture, Play, Pause, Maximize, Minimize } from "lucide-react";
+import { Settings, Download, PictureInPicture, Play, Pause, Maximize, Minimize, Volume2, VolumeX } from "lucide-react";
 import { formatDuration, formatRelative } from "@/lib/format";
 import { SubscribeButton } from "@/components/video/subscribe-button";
 import { VideoAd } from "@/components/video/video-ad";
@@ -48,6 +48,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(video.duration);
   const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedQuality, setSelectedQuality] = useState("auto");
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -87,6 +88,80 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     }
   }, [video.hasAds, adCompleted, isClient]);
 
+  // Check if video is from YouTube
+  const isYouTubeVideo = () => {
+    try {
+      if (!video.videoUrl) return false;
+      const url = video.videoUrl.trim();
+      return url.includes("youtube.com") || url.includes("youtu.be");
+    } catch (error) {
+      console.error("Error checking if YouTube video:", error);
+      return false;
+    }
+  };
+
+  // Extract YouTube video ID with error handling
+  const getYouTubeVideoId = () => {
+    try {
+      if (!video.videoUrl) return null;
+      const url = video.videoUrl.trim();
+      
+      // Handle youtube.com/watch?v=VIDEO_ID
+      const watchMatch = url.match(/[?&]v=([^&]+)/);
+      if (watchMatch && watchMatch[1]) return watchMatch[1];
+      
+      // Handle youtu.be/VIDEO_ID
+      const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+      if (shortMatch && shortMatch[1]) return shortMatch[1];
+      
+      // Handle youtube.com/embed/VIDEO_ID
+      const embedMatch = url.match(/\/embed\/([^?&]+)/);
+      if (embedMatch && embedMatch[1]) return embedMatch[1];
+      
+      return null;
+    } catch (error) {
+      console.error("Error extracting YouTube video ID:", error);
+      return null;
+    }
+  };
+
+  // Get YouTube embed URL with error handling (client-side only to avoid hydration mismatch)
+  const getYouTubeEmbedUrl = (autoplay = false) => {
+    try {
+      // Only generate URL on client side to avoid hydration mismatch
+      if (typeof window === "undefined") {
+        return null;
+      }
+      
+      const videoId = getYouTubeVideoId();
+      if (!videoId) {
+        console.error("Could not extract YouTube video ID from URL:", video.videoUrl);
+        return null;
+      }
+      
+      // Validate video ID format (should be 11 characters, alphanumeric, hyphens, underscores)
+      if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+        console.error("Invalid YouTube video ID format:", videoId);
+        return null;
+      }
+      
+      const params = new URLSearchParams({
+        enablejsapi: "1",
+        origin: window.location.origin, // Always use client-side origin
+        rel: "0", // Don't show related videos
+        modestbranding: "1", // Hide YouTube logo
+        playsinline: "1", // Play inline on mobile
+      });
+      if (autoplay) {
+        params.set("autoplay", "1");
+      }
+      return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+    } catch (error) {
+      console.error("Error creating YouTube embed URL:", error);
+      return null;
+    }
+  };
+
   // Get video URL - handle both external and local videos
   const getVideoUrl = (useDirect = false) => {
     // Validate video URL
@@ -96,6 +171,11 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     }
 
     const url = video.videoUrl.trim();
+    
+    // YouTube videos are handled separately with iframe
+    if (isYouTubeVideo()) {
+      return null; // Will use iframe instead
+    }
     
     // If it's already an external URL (http/https), use it directly
     if (url.startsWith("http://") || url.startsWith("https://")) {
@@ -122,40 +202,79 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     return url;
   };
 
-  // Initialize video source - always use API route to proxy external URLs and avoid CORS issues
+  // Initialize video source - use API route for non-YouTube videos
   const [videoSrc, setVideoSrc] = useState<string>(() => {
+    // YouTube videos use iframe, not video element
+    if (isYouTubeVideo()) {
+      return "";
+    }
     // Always use API route which handles both external and local videos
     // This avoids CORS issues and URL safety checks
     return `/api/video/${video.id}/stream`;
   });
 
-  // Update video source when video changes
+  // Update video source when video changes with error handling
   useEffect(() => {
-    // Don't load video if ad is showing - wait until ad completes
-    if (showAd && !adCompleted) {
-      return;
-    }
-    
-    // Always use API route which proxies external URLs to avoid CORS and security issues
-    const finalUrl = `/api/video/${video.id}/stream`;
-    
-    console.log("Setting video source:", { 
-      originalUrl: video.videoUrl, 
-      finalUrl, 
-      videoId: video.id 
-    });
-    
-    setVideoSrc(finalUrl);
-    setRetryCount(0);
-    setVideoError(null);
-    setIsLoading(true);
-    
-    if (videoRef.current) {
-      // Set crossOrigin for API route
-      videoRef.current.crossOrigin = "anonymous";
-      // Set src attribute
-      videoRef.current.src = finalUrl;
-      videoRef.current.load();
+    try {
+      // Don't load video if ad is showing - wait until ad completes
+      if (showAd && !adCompleted) {
+        return;
+      }
+      
+      // YouTube videos use iframe, skip video element setup
+      if (isYouTubeVideo()) {
+        // Validate YouTube URL before setting up
+        const videoId = getYouTubeVideoId();
+        if (!videoId) {
+          setVideoError("Invalid YouTube video URL. Please check the video link.");
+          setIsLoading(false);
+          return;
+        }
+        
+        // Check if embed URL can be created
+        const embedUrl = getYouTubeEmbedUrl(false);
+        if (!embedUrl) {
+          setVideoError("Unable to create YouTube embed URL. The video may be invalid.");
+          setIsLoading(false);
+          return;
+        }
+        
+        setIsLoading(true); // Will be set to false when iframe loads
+        setVideoError(null);
+        return;
+      }
+      
+      // Always use API route which proxies external URLs to avoid CORS and security issues
+      const finalUrl = `/api/video/${video.id}/stream`;
+      
+      console.log("Setting video source:", { 
+        originalUrl: video.videoUrl, 
+        finalUrl, 
+        videoId: video.id 
+      });
+      
+      setVideoSrc(finalUrl);
+      setRetryCount(0);
+      setVideoError(null);
+      setIsLoading(true);
+      
+      if (videoRef.current) {
+        try {
+          // Set crossOrigin for API route
+          videoRef.current.crossOrigin = "anonymous";
+          // Set src attribute
+          videoRef.current.src = finalUrl;
+          videoRef.current.load();
+        } catch (error) {
+          console.error("Error setting video source:", error);
+          setVideoError("Failed to load video source. Please try again.");
+          setIsLoading(false);
+        }
+      }
+    } catch (error) {
+      console.error("Unexpected error in video source update:", error);
+      setVideoError("An unexpected error occurred while loading the video.");
+      setIsLoading(false);
     }
   }, [video.id, video.videoUrl, showAd, adCompleted]);
 
@@ -177,9 +296,67 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     return () => clearTimeout(timer);
   }, [video.id]);
 
+  // Listen for YouTube iframe events with comprehensive error handling
+  useEffect(() => {
+    if (!isYouTubeVideo()) return;
+
+    const handleYouTubeMessage = (event: MessageEvent) => {
+      try {
+        // Only accept messages from YouTube
+        if (event.origin !== "https://www.youtube.com") return;
+
+        try {
+          const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+          
+          if (data.event === "onStateChange") {
+            // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (cued)
+            if (data.info === 1) {
+              setIsPlaying(true);
+              setVideoError(null); // Clear any previous errors
+            } else if (data.info === 2 || data.info === 0) {
+              setIsPlaying(false);
+            } else if (data.info === -1) {
+              // Video unstarted - might be loading or error
+              setIsLoading(true);
+            } else if (data.info === 3) {
+              // Buffering
+              setIsLoading(true);
+            }
+          } else if (data.event === "onReady") {
+            setIsLoading(false);
+            setVideoError(null);
+          } else if (data.event === "onError") {
+            // YouTube player error
+            console.error("YouTube player error:", data);
+            setVideoError("YouTube video failed to load. The video may be private, deleted, or unavailable.");
+            setIsLoading(false);
+          }
+        } catch (parseError) {
+          // Ignore parse errors for non-JSON messages
+          // YouTube sends various message types, not all are JSON
+        }
+      } catch (error) {
+        console.error("Error handling YouTube message:", error);
+      }
+    };
+
+    try {
+      window.addEventListener("message", handleYouTubeMessage);
+      return () => {
+        try {
+          window.removeEventListener("message", handleYouTubeMessage);
+        } catch (error) {
+          console.error("Error removing YouTube message listener:", error);
+        }
+      };
+    } catch (error) {
+      console.error("Error setting up YouTube message listener:", error);
+    }
+  }, [video.id, video.videoUrl]);
+
   useEffect(() => {
     const videoElement = videoRef.current;
-    if (!videoElement) return;
+    if (!videoElement || isYouTubeVideo()) return; // Skip for YouTube videos
 
     const updateTime = () => setCurrentTime(videoElement.currentTime);
     const updateDuration = () => setDuration(videoElement.duration);
@@ -227,7 +404,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
       videoElement.removeEventListener("webkitbeginfullscreen", handleFullscreenChange);
       videoElement.removeEventListener("webkitendfullscreen", handleFullscreenChange);
     };
-  }, []);
+  }, [isYouTubeVideo]);
 
   // Close settings menu when clicking outside
   useEffect(() => {
@@ -245,23 +422,123 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   }, [showSettings]);
 
   const togglePlayPause = () => {
-    // Don't allow playback if ad is showing
-    if (showAd && !adCompleted) {
+    try {
+      // Don't allow playback if ad is showing
+      if (showAd && !adCompleted) {
+        return;
+      }
+      
+      // Handle YouTube iframe
+      if (isYouTubeVideo() && typeof window !== "undefined") {
+        // Only send postMessage if iframe is ready
+        if (!youtubeIframeReady) {
+          console.debug("YouTube iframe not ready yet, waiting for load...");
+          return;
+        }
+        
+        try {
+          const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
+          if (!iframe) {
+            console.warn("YouTube iframe not found for video:", video.id);
+            return;
+          }
+          
+          // Double-check iframe is ready
+          if (!iframe.contentWindow) {
+            console.warn("YouTube iframe contentWindow not available");
+            setYoutubeIframeReady(false);
+            return;
+          }
+          
+          const iframeSrc = iframe.src;
+          if (!iframeSrc || !iframeSrc.includes("youtube.com")) {
+            console.warn("YouTube iframe src not valid");
+            setYoutubeIframeReady(false);
+            return;
+          }
+          
+          const command = isPlaying ? "pauseVideo" : "playVideo";
+          // Use try-catch for postMessage in case of CORS or security errors
+          try {
+            // Only send postMessage if iframe is from YouTube origin
+            const iframeUrl = new URL(iframeSrc);
+            if (iframeUrl.origin !== "https://www.youtube.com") {
+              console.warn("Iframe origin mismatch, cannot send postMessage");
+              return;
+            }
+            
+            // Ensure we're sending to the correct origin
+            iframe.contentWindow.postMessage(
+              JSON.stringify({ event: "command", func: command, args: "" }),
+              "https://www.youtube.com"
+            );
+            setIsPlaying(!isPlaying);
+          } catch (postError) {
+            // Silently fail - postMessage errors are common and don't break functionality
+            // The user can still control the video using YouTube's native controls
+            console.debug("YouTube postMessage failed:", postError);
+            // Don't update state if postMessage fails - let YouTube handle it
+          }
+        } catch (error) {
+          console.error("Error controlling YouTube video:", error);
+          // Don't set error state - YouTube videos can still be controlled manually
+        }
+        return;
+      }
+      
+      // Handle regular video element
+      if (videoRef.current) {
+        try {
+          if (isPlaying) {
+            videoRef.current.pause();
+          } else {
+            videoRef.current.play().catch((playError) => {
+              console.error("Error playing video:", playError);
+              setVideoError("Failed to play video. Please try again.");
+            });
+          }
+        } catch (error) {
+          console.error("Error toggling video playback:", error);
+          setVideoError("Unable to control video playback.");
+        }
+      }
+    } catch (error) {
+      console.error("Unexpected error in togglePlayPause:", error);
+      setVideoError("An unexpected error occurred. Please refresh the page.");
+    }
+  };
+
+  // Handle click on video player to play/pause (YouTube-style)
+  const handleVideoClick = (e: React.MouseEvent) => {
+    // Don't toggle if clicking on controls or iframe (YouTube handles its own clicks)
+    const target = e.target as HTMLElement;
+    if (
+      target.closest("button") ||
+      target.closest("input") ||
+      target.closest(".settings-menu-container") ||
+      target.closest("iframe") ||
+      target.tagName === "IFRAME"
+    ) {
       return;
     }
     
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
+    // Only toggle for non-YouTube videos (YouTube iframe handles its own clicks)
+    if (!isYouTubeVideo()) {
+      togglePlayPause();
     }
   };
 
   const handleAdComplete = () => {
     setShowAd(false);
     setAdCompleted(true);
+    
+    // Handle YouTube videos differently
+    if (isYouTubeVideo()) {
+      // For YouTube, just show the iframe (no autoplay)
+      // User can click to play
+      return;
+    }
+    
     // Load video after ad completes
     if (videoRef.current) {
       const finalUrl = `/api/video/${video.id}/stream`;
@@ -277,6 +554,18 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   const handleAdSkip = () => {
     setShowAd(false);
     setAdCompleted(true);
+    
+    // Handle YouTube videos differently
+    if (isYouTubeVideo()) {
+      // For YouTube, update embed URL with autoplay (skip button = user interaction)
+      const autoplayUrl = getYouTubeEmbedUrl(true);
+      if (autoplayUrl) {
+        setYoutubeEmbedUrl(autoplayUrl);
+        setYoutubeIframeReady(false); // Reset ready state when URL changes
+      }
+      return;
+    }
+    
     // Load and play video after ad is skipped (skip button click = user interaction)
     if (videoRef.current) {
       const finalUrl = `/api/video/${video.id}/stream`;
@@ -304,10 +593,101 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation(); // Prevent video click handler
     const vol = parseFloat(e.target.value);
+    
+    // Handle YouTube videos
+    if (isYouTubeVideo() && typeof window !== "undefined" && youtubeIframeReady) {
+      try {
+        const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
+        if (iframe && iframe.contentWindow) {
+          // YouTube volume is 0-100, our slider is 0-1
+          const youtubeVolume = Math.round(vol * 100);
+          try {
+            iframe.contentWindow.postMessage(
+              JSON.stringify({ event: "command", func: "setVolume", args: [youtubeVolume] }),
+              "https://www.youtube.com"
+            );
+            setVolume(vol);
+            setIsMuted(vol === 0);
+          } catch (postError) {
+            console.debug("YouTube volume postMessage failed:", postError);
+          }
+        }
+      } catch (error) {
+        console.error("Error setting YouTube volume:", error);
+      }
+      return;
+    }
+    
+    // Handle regular videos
     if (videoRef.current) {
       videoRef.current.volume = vol;
       setVolume(vol);
+      setIsMuted(vol === 0);
+    }
+  };
+
+  const toggleMute = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevent video click handler
+    }
+    
+    if (isMuted) {
+      // Unmute - restore previous volume or set to 0.5 if was 0
+      const newVolume = volume === 0 ? 0.5 : volume;
+      if (videoRef.current) {
+        videoRef.current.volume = newVolume;
+        videoRef.current.muted = false;
+        setVolume(newVolume);
+      }
+      setIsMuted(false);
+      
+      // Handle YouTube videos
+      if (isYouTubeVideo() && typeof window !== "undefined" && youtubeIframeReady) {
+        try {
+          const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
+          if (iframe && iframe.contentWindow) {
+            const youtubeVolume = Math.round(newVolume * 100);
+            try {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({ event: "command", func: "setVolume", args: [youtubeVolume] }),
+                "https://www.youtube.com"
+              );
+            } catch (postError) {
+              console.debug("YouTube unmute postMessage failed:", postError);
+            }
+          }
+        } catch (error) {
+          console.error("Error unmuting YouTube video:", error);
+        }
+      }
+    } else {
+      // Mute
+      if (videoRef.current) {
+        videoRef.current.muted = true;
+        // Keep volume value but mute the audio
+      }
+      setIsMuted(true);
+      
+      // Handle YouTube videos
+      if (isYouTubeVideo() && typeof window !== "undefined" && youtubeIframeReady) {
+        try {
+          const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
+          if (iframe && iframe.contentWindow) {
+            try {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({ event: "command", func: "setVolume", args: [0] }),
+                "https://www.youtube.com"
+              );
+            } catch (postError) {
+              console.debug("YouTube mute postMessage failed:", postError);
+            }
+          }
+        } catch (error) {
+          console.error("Error muting YouTube video:", error);
+        }
+      }
     }
   };
 
@@ -368,7 +748,55 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     }
   };
 
-  const handleFullscreen = async () => {
+  const handleFullscreen = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevent video click handler
+    }
+    
+    // Handle YouTube videos - YouTube iframe handles fullscreen via allowFullScreen attribute
+    if (isYouTubeVideo()) {
+      try {
+        const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
+        if (iframe) {
+          // For YouTube, we can request fullscreen on the container or let YouTube handle it
+          // YouTube's native fullscreen button in the iframe will work
+          // But we can also request fullscreen on the container
+          const container = iframe.closest(".video-player-container") as HTMLElement;
+          if (container) {
+            if (document.fullscreenElement) {
+              // Exit fullscreen
+              if (document.exitFullscreen) {
+                await document.exitFullscreen();
+              } else if ((document as any).webkitExitFullscreen) {
+                await (document as any).webkitExitFullscreen();
+              } else if ((document as any).mozCancelFullScreen) {
+                await (document as any).mozCancelFullScreen();
+              } else if ((document as any).msExitFullscreen) {
+                await (document as any).msExitFullscreen();
+              }
+              setIsFullscreen(false);
+            } else {
+              // Enter fullscreen on container
+              if (container.requestFullscreen) {
+                await container.requestFullscreen();
+              } else if ((container as any).webkitRequestFullscreen) {
+                await (container as any).webkitRequestFullscreen();
+              } else if ((container as any).mozRequestFullScreen) {
+                await (container as any).mozRequestFullScreen();
+              } else if ((container as any).msRequestFullscreen) {
+                await (container as any).msRequestFullscreen();
+              }
+              setIsFullscreen(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("YouTube fullscreen error:", err);
+      }
+      return;
+    }
+    
+    // Handle regular videos
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
@@ -414,9 +842,25 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     }
   };
 
+  // YouTube embed URL - only generate on client to avoid hydration mismatch
+  const [youtubeEmbedUrl, setYoutubeEmbedUrl] = useState<string | null>(null);
+  const [youtubeIframeReady, setYoutubeIframeReady] = useState(false);
+  
+  // Generate YouTube embed URL only on client side
+  useEffect(() => {
+    if (isClient && isYouTubeVideo()) {
+      const embedUrl = getYouTubeEmbedUrl(false);
+      setYoutubeEmbedUrl(embedUrl);
+      setYoutubeIframeReady(false); // Reset ready state when URL changes
+    }
+  }, [isClient, video.videoUrl, video.id]);
+
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
-      <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/5 bg-black sm:rounded-3xl group video-player-container">
+      <div 
+        className="relative aspect-video overflow-hidden rounded-2xl border border-white/5 bg-black sm:rounded-3xl group video-player-container cursor-pointer"
+        onClick={handleVideoClick}
+      >
         {/* Ad Overlay - Only show on client to avoid hydration mismatch */}
         {isClient && showAd && !adCompleted && video.hasAds && (
           <VideoAd
@@ -426,7 +870,77 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           />
         )}
         
-        <video
+        {/* YouTube iframe embed with error handling - only render on client to avoid hydration mismatch */}
+        {isClient && youtubeEmbedUrl && (
+          <>
+            <iframe
+              data-video-id={video.id}
+              src={youtubeEmbedUrl}
+              className="absolute inset-0 size-full pointer-events-auto"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              style={{ display: showAd && !adCompleted ? "none" : "block" }}
+              onLoad={() => {
+                try {
+                  setIsLoading(false);
+                  setVideoError(null);
+                  // Mark iframe as ready for postMessage after a short delay
+                  // This ensures the iframe is fully initialized
+                  setTimeout(() => {
+                    setYoutubeIframeReady(true);
+                  }, 500);
+                } catch (error) {
+                  console.error("Error in YouTube iframe onLoad:", error);
+                  setYoutubeIframeReady(false);
+                }
+              }}
+              onError={(e) => {
+                console.error("YouTube iframe load error:", e);
+                setVideoError("Failed to load YouTube video. The video may be unavailable or restricted.");
+                setIsLoading(false);
+              }}
+              title={video.title}
+            />
+            
+            {/* Error message overlay for YouTube videos */}
+            {videoError && isYouTubeVideo() && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/90 p-4 z-10">
+                <div className="text-center max-w-md">
+                  <p className="text-rose-400 font-semibold mb-2">⚠️ Video Error</p>
+                  <p className="text-white/70 text-sm mb-4">{videoError}</p>
+                  <div className="flex gap-3 justify-center">
+                    <a
+                      href={video.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-600"
+                    >
+                      Watch on YouTube
+                    </a>
+                    <button
+                      onClick={() => {
+                        setVideoError(null);
+                        setIsLoading(true);
+                        // Force iframe reload
+                        const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
+                        if (iframe) {
+                          iframe.src = iframe.src; // Reload iframe
+                        }
+                      }}
+                      className="rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/30"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        
+        {/* Regular video element (for non-YouTube videos) */}
+        {!youtubeEmbedUrl && (
+          <video
           ref={videoRef}
           src={videoSrc || undefined}
           className="size-full"
@@ -440,6 +954,9 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               setDuration(videoRef.current.duration);
               setIsLoading(false);
               setVideoError(null);
+              // Sync volume state with video element
+              setVolume(videoRef.current.volume);
+              setIsMuted(videoRef.current.volume === 0 || videoRef.current.muted);
               // Don't auto-play if ad is showing
               if (showAd && !adCompleted) {
                 videoRef.current.pause();
@@ -562,6 +1079,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           )}
           Your browser does not support the video tag.
         </video>
+        )}
         
         {videoError && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/90 p-4">
@@ -598,26 +1116,32 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
         <div className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity ${
           !isPlaying || showSettings ? "opacity-100" : "opacity-0 md:group-hover:opacity-100 md:opacity-0"
         }`}>
-          {/* Progress Bar */}
-          <div className="px-4 pb-2">
-            <input
-              type="range"
-              min="0"
-              max={duration || 0}
-              value={currentTime}
-              onChange={handleSeek}
-              className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-cyan-500"
-            />
-            <div className="flex justify-between text-xs text-white/70 mt-1">
-              <span>{formatDuration(currentTime)}</span>
-              <span>{formatDuration(duration)}</span>
+          {/* Progress Bar - Only show for non-YouTube videos (YouTube has its own controls) */}
+          {!isYouTubeVideo() && (
+            <div className="px-4 pb-2">
+              <input
+                type="range"
+                min="0"
+                max={duration || 0}
+                value={currentTime}
+                onChange={handleSeek}
+                className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                onClick={(e) => e.stopPropagation()} // Prevent triggering parent click
+              />
+              <div className="flex justify-between text-xs text-white/70 mt-1">
+                <span>{formatDuration(currentTime)}</span>
+                <span>{formatDuration(duration)}</span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Control Bar */}
-          <div className="flex items-center gap-2 px-4 pb-4">
+          <div className="flex items-center gap-2 px-4 pb-4" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={togglePlayPause}
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlayPause();
+              }}
               className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation"
               type="button"
             >
@@ -628,14 +1152,28 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               )}
             </button>
 
-            <div className="flex items-center gap-2 flex-1">
+            {/* Volume Controls */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleMute}
+                className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation"
+                aria-label={isMuted ? "Unmute" : "Mute"}
+                type="button"
+              >
+                {isMuted || volume === 0 ? (
+                  <VolumeX className="size-5" />
+                ) : (
+                  <Volume2 className="size-5" />
+                )}
+              </button>
               <input
                 type="range"
                 min="0"
                 max="1"
                 step="0.01"
-                value={volume}
+                value={isMuted ? 0 : volume}
                 onChange={handleVolumeChange}
+                onClick={(e) => e.stopPropagation()}
                 className="w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-cyan-500"
               />
             </div>
@@ -667,14 +1205,23 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
 
               {showSettings && (
                 <div 
-                  className={`absolute bottom-full right-0 mb-2 w-52 max-h-[70vh] overflow-y-auto rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md ${
+                  className={`absolute bottom-full right-0 mb-2 w-52 max-h-[50vh] min-h-[200px] overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
                     isFullscreen ? 'z-[9999]' : 'z-50'
                   }`}
-                  style={isFullscreen ? {
-                    position: 'fixed',
-                    bottom: '80px',
-                    right: '20px',
-                  } : undefined}
+                  style={{
+                    ...(isFullscreen ? {
+                      position: 'fixed',
+                      bottom: '80px',
+                      right: '20px',
+                    } : {}),
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.2)',
+                    WebkitOverflowScrolling: 'touch',
+                    maxHeight: '50vh',
+                    minHeight: '200px',
+                  }}
+                  onScroll={(e) => e.stopPropagation()}
+                  onWheel={(e) => e.stopPropagation()}
                 >
                   {/* Quality Selector */}
                   <div className="mb-3">

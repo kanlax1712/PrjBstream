@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AppSessionProvider } from "@/components/providers/session-provider";
 import { PWAInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 import { Chatbot } from "@/components/chatbot/chatbot";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth-wrapper";
 import Script from "next/script";
 import "./globals.css";
 
@@ -31,8 +31,13 @@ export const metadata: Metadata = {
     icon: [
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icon-192.png", sizes: "any", type: "image/png" },
     ],
     apple: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: [
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
   },
@@ -51,13 +56,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let session = null;
-  try {
-    session = await auth();
-  } catch (error) {
-    console.error("Error in layout:", error);
-    // Continue without session if auth fails
-  }
+  const session = await getSession();
 
   return (
     <html lang="en" className="bg-slate-950 text-white">

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Radio, Video, Mic, Settings } from "lucide-react";
+import { Radio, Video, Mic, Settings, Globe, Lock, Share2, Copy } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function GoLiveClient() {
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isLive, setIsLive] = useState(false);
@@ -13,6 +15,11 @@ export function GoLiveClient() {
   const [micActive, setMicActive] = useState(true);
   const [selectedCamera, setSelectedCamera] = useState<string>("");
   const [selectedMic, setSelectedMic] = useState<string>("");
+  const [streamVisibility, setStreamVisibility] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
+  const [streamTitle, setStreamTitle] = useState("");
+  const [streamDescription, setStreamDescription] = useState("");
+  const [streamUrl, setStreamUrl] = useState("");
+  const [streamId, setStreamId] = useState("");
   const [devices, setDevices] = useState<{
     cameras: MediaDeviceInfo[];
     mics: MediaDeviceInfo[];
@@ -230,13 +237,61 @@ export function GoLiveClient() {
     }
   };
 
-  const startLive = () => {
+  const startLive = async () => {
     if (!cameraActive) {
       setError("Please start camera first");
       return;
     }
-    setIsLive(true);
-    // In production: Connect to streaming server (RTMP, WebRTC, etc.)
+
+    if (!streamTitle.trim()) {
+      setError("Please enter a stream title");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError("");
+
+      // Get user's first channel (in production, let them select)
+      const response = await fetch("/api/go-live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: streamTitle,
+          description: streamDescription,
+          visibility: streamVisibility,
+          channelId: "default", // In production, get from user's channels
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsLive(true);
+        setStreamId(data.stream.id);
+        setStreamUrl(data.stream.shareUrl);
+        // In production: Connect to streaming server (RTMP, WebRTC, etc.)
+      } else {
+        setError(data.message || "Failed to start live stream");
+      }
+    } catch (err: any) {
+      console.error("Start live error:", err);
+      setError("Failed to start live stream. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const copyStreamUrl = async () => {
+    if (streamUrl) {
+      try {
+        await navigator.clipboard.writeText(streamUrl);
+        // Show success message
+        alert("Stream link copied to clipboard!");
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
+    }
   };
 
   const stopLive = () => {
@@ -410,6 +465,99 @@ export function GoLiveClient() {
                       </option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {/* Stream Title */}
+              <div>
+                <label className="text-sm text-white/70">Stream Title *</label>
+                <input
+                  type="text"
+                  value={streamTitle}
+                  onChange={(e) => setStreamTitle(e.target.value)}
+                  disabled={isLive}
+                  placeholder="My Live Stream"
+                  className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50"
+                />
+              </div>
+
+              {/* Stream Description */}
+              <div>
+                <label className="text-sm text-white/70">Description (optional)</label>
+                <textarea
+                  value={streamDescription}
+                  onChange={(e) => setStreamDescription(e.target.value)}
+                  disabled={isLive}
+                  rows={3}
+                  placeholder="Tell viewers what your stream is about..."
+                  className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50"
+                />
+              </div>
+
+              {/* Stream Visibility */}
+              <div>
+                <label className="text-sm text-white/70">Stream Visibility</label>
+                <div className="mt-2 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStreamVisibility("PUBLIC")}
+                    disabled={isLive}
+                    className={`flex-1 flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                      streamVisibility === "PUBLIC"
+                        ? "border-cyan-400 bg-cyan-500/20 text-cyan-300"
+                        : "border-white/10 bg-transparent text-white/70 hover:bg-white/5"
+                    } disabled:opacity-50`}
+                  >
+                    <Globe className="size-4" />
+                    Public
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStreamVisibility("PRIVATE")}
+                    disabled={isLive}
+                    className={`flex-1 flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                      streamVisibility === "PRIVATE"
+                        ? "border-cyan-400 bg-cyan-500/20 text-cyan-300"
+                        : "border-white/10 bg-transparent text-white/70 hover:bg-white/5"
+                    } disabled:opacity-50`}
+                  >
+                    <Lock className="size-4" />
+                    Private
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-white/50">
+                  {streamVisibility === "PUBLIC"
+                    ? "Anyone can view this stream"
+                    : "Only your subscribers can view this stream"}
+                </p>
+              </div>
+
+              {/* Share URL (when live) */}
+              {isLive && streamUrl && (
+                <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+                  <p className="text-sm font-semibold text-cyan-300 mb-2">Share Your Stream</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={streamUrl}
+                      className="flex-1 rounded-xl border border-white/10 bg-transparent px-3 py-2 text-xs text-white focus:outline-none"
+                    />
+                    <button
+                      onClick={copyStreamUrl}
+                      className="flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-cyan-600"
+                    >
+                      <Copy className="size-3" />
+                      Copy
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => router.push(streamUrl)}
+                    className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/20 px-4 py-2 text-xs font-medium text-cyan-300 transition hover:bg-cyan-500/30"
+                  >
+                    <Share2 className="size-3" />
+                    View Stream Page
+                  </button>
                 </div>
               )}
 
