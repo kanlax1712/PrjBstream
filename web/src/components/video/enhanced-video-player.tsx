@@ -1339,24 +1339,23 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
 
               {showSettings && (
                 <div 
-                  className={`absolute bottom-full right-0 mb-2 w-52 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
+                  className={`absolute top-full right-0 mt-2 w-52 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
                     isFullscreen ? 'z-[9999]' : 'z-50'
                   }`}
                   style={{
                     ...(isFullscreen ? {
                       position: 'fixed',
-                      bottom: '80px',
+                      top: '80px',
                       right: '20px',
-                      maxHeight: '70vh', // Fullscreen: use 70% of viewport height
+                      maxHeight: 'calc(100vh - 100px)', // Fullscreen: ensure it fits in viewport
                     } : {
-                      maxHeight: '60vh', // Normal: use 60% of viewport height
+                      maxHeight: '400px', // Normal: fixed max height that shows all options
                     }),
                     scrollbarWidth: 'thin',
-                    scrollbarColor: 'rgba(255, 255, 255, 0.6) rgba(0, 0, 0, 0.3)',
+                    scrollbarColor: 'rgba(255, 255, 255, 0.7) rgba(0, 0, 0, 0.3)',
                     WebkitOverflowScrolling: 'touch',
-                    minHeight: '250px',
-                    // Ensure content starts from top and is scrollable
-                    overscrollBehavior: 'contain',
+                    // Ensure scrollbar is always visible when needed
+                    overflowY: 'auto',
                   }}
                   onScroll={(e) => e.stopPropagation()}
                   onWheel={(e) => {
