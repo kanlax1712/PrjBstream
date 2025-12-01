@@ -1443,7 +1443,8 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                       Picture in Picture
                     </button>
                   </div>
-                </div>
+                  </div>
+                </>
               )}
             </div>
           </div>
