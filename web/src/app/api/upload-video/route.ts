@@ -109,6 +109,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate video file format (SDLC: Comprehensive validation)
+    const ALLOWED_VIDEO_FORMATS = [
+      'video/mp4',
+      'video/quicktime', // MOV
+      'video/webm',
+      'video/x-msvideo', // AVI
+      'video/x-matroska', // MKV
+      'video/3gpp',
+      'video/x-flv',
+    ];
+    const ALLOWED_EXTENSIONS = ['.mp4', '.mov', '.webm', '.avi', '.mkv', '.3gp', '.flv'];
+    
+    const fileExtension = path.extname(videoFile.name).toLowerCase();
+    const isValidFormat = ALLOWED_VIDEO_FORMATS.includes(videoFile.type) || 
+                          ALLOWED_EXTENSIONS.includes(fileExtension);
+    
+    if (!isValidFormat) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Unsupported video format. Please upload MP4, MOV, WebM, AVI, MKV, 3GP, or FLV files.`,
+        },
+        { status: 400 }
+      );
+    }
+
     // Get video quality preference
     const qualityPreference = formData.get("videoQuality")?.toString() || "auto";
     console.log("Video quality preference:", qualityPreference);
@@ -230,6 +256,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SDLC: Create video record with all necessary data
     const video = await prisma.video.create({
       data: {
         title: parsed.data.title,
@@ -244,7 +271,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("Video created successfully:", { id: video.id, title: video.title });
+    console.log("Video created successfully:", { 
+      id: video.id, 
+      title: video.title,
+      channelId: channel.id,
+      fileSize: `${(videoFile.size / 1024 / 1024).toFixed(2)}MB`,
+      format: videoFile.type || fileExtension,
+    });
+
+    // SDLC: Channel stats are automatically updated via Prisma relations
+    // The channel.videos count is available via _count in queries
+    // No manual update needed as Prisma handles this through relations
 
     // Trigger transcoding in the background (non-blocking)
     // This will create multiple quality versions using FFmpeg
