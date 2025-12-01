@@ -8,29 +8,36 @@ import { Radio } from "lucide-react";
 export default async function LivePage() {
   const session = await auth();
 
-  // Get actual live streams from database
-  const liveStreams = await prisma.liveStream.findMany({
-    where: {
-      status: {
-        in: ["STARTING", "LIVE"],
+  // Get actual live streams from database with error handling
+  let liveStreams = [];
+  try {
+    liveStreams = await prisma.liveStream.findMany({
+      where: {
+        status: {
+          in: ["STARTING", "LIVE"],
+        },
+        visibility: "PUBLIC",
       },
-      visibility: "PUBLIC",
-    },
-    include: {
-      channel: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true,
+      include: {
+        channel: {
+          select: {
+            id: true,
+            name: true,
+            handle: true,
+            avatarUrl: true,
+          },
         },
       },
-    },
-    orderBy: {
-      startedAt: "desc",
-    },
-    take: 50,
-  });
+      orderBy: {
+        startedAt: "desc",
+      },
+      take: 50,
+    });
+  } catch (error: any) {
+    console.error("Error fetching live streams:", error);
+    // If table doesn't exist or other DB error, continue with empty array
+    liveStreams = [];
+  }
 
   // Also get recent videos as fallback
   const twentyFourHoursAgo = new Date();
