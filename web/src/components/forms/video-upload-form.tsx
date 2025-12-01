@@ -1,28 +1,38 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ThumbnailSelector } from "./thumbnail-selector";
 import { YoutubeImportButton } from "./youtube-import-button";
 import { formatDuration } from "@/lib/format";
-import { Upload, Pencil, FileVideo } from "lucide-react";
+import { Upload, Pencil, FileVideo, Loader2, X } from "lucide-react";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
+const TRANSCODE_CHECK_INTERVAL = 3000; // Check every 3 seconds
+const MAX_TRANSCODE_WAIT_TIME = 300000; // Max 5 minutes wait
 
 type UploadState = {
   success: boolean;
   message: string;
 };
 
+type UploadProgress = {
+  stage: "uploading" | "transcoding" | "complete" | "error";
+  progress: number; // 0-100
+  message: string;
+};
+
 export function VideoUploadForm() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const videoFileRef = useRef<File | null>(null); // Preserve video file across re-renders
   const [state, setState] = useState<UploadState>({
     success: false,
     message: "",
   });
   const [fileError, setFileError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [selectedThumbnail, setSelectedThumbnail] = useState<string | null>(null);
   const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
@@ -30,6 +40,90 @@ export function VideoUploadForm() {
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [hasAds, setHasAds] = useState<boolean>(false);
   const [uploadMethod, setUploadMethod] = useState<"local" | "youtube">("local");
+  const [uploadedVideoId, setUploadedVideoId] = useState<string | null>(null);
+  const transcodeCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync videoFile state with ref
+  useEffect(() => {
+    if (videoFile) {
+      videoFileRef.current = videoFile;
+    }
+  }, [videoFile]);
+
+  // Cleanup transcoding check interval on unmount
+  useEffect(() => {
+    return () => {
+      if (transcodeCheckIntervalRef.current) {
+        clearInterval(transcodeCheckIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Check transcoding status
+  const checkTranscodingStatus = async (videoId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/video/${videoId}/status`);
+      if (!response.ok) {
+        return false;
+      }
+      const status = await response.json();
+      return status.isComplete || status.hasFailed;
+    } catch (error) {
+      console.error("Error checking transcoding status:", error);
+      return false;
+    }
+  };
+
+  // Poll for transcoding completion
+  const waitForTranscoding = (videoId: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      
+      const checkStatus = async () => {
+        try {
+          const isComplete = await checkTranscodingStatus(videoId);
+          
+          if (isComplete) {
+            if (transcodeCheckIntervalRef.current) {
+              clearInterval(transcodeCheckIntervalRef.current);
+              transcodeCheckIntervalRef.current = null;
+            }
+            resolve();
+            return;
+          }
+
+          // Check if we've exceeded max wait time
+          if (Date.now() - startTime > MAX_TRANSCODE_WAIT_TIME) {
+            if (transcodeCheckIntervalRef.current) {
+              clearInterval(transcodeCheckIntervalRef.current);
+              transcodeCheckIntervalRef.current = null;
+            }
+            reject(new Error("Transcoding is taking longer than expected. Your video is uploaded and will be available shortly."));
+            return;
+          }
+
+          // Update progress message
+          const response = await fetch(`/api/video/${videoId}/status`);
+          if (response.ok) {
+            const status = await response.json();
+            setUploadProgress({
+              stage: "transcoding",
+              progress: Math.min(90, (status.qualityStatuses.ready / Math.max(status.qualityStatuses.total, 1)) * 80 + 10),
+              message: status.message || "Processing video...",
+            });
+          }
+        } catch (error) {
+          console.error("Error polling transcoding status:", error);
+        }
+      };
+
+      // Check immediately
+      checkStatus();
+      
+      // Then check periodically
+      transcodeCheckIntervalRef.current = setInterval(checkStatus, TRANSCODE_CHECK_INTERVAL);
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,8 +135,33 @@ export function VideoUploadForm() {
     setIsUploading(true);
     setState({ success: false, message: "" });
     setFileError("");
+    setUploadProgress({ stage: "uploading", progress: 0, message: "Preparing upload..." });
+    setUploadedVideoId(null);
 
     const formData = new FormData(e.currentTarget);
+    
+    // Ensure video file is in formData (use ref as fallback if state was cleared)
+    const currentVideoFile = videoFile || videoFileRef.current;
+    if (!currentVideoFile) {
+      setState({ 
+        success: false, 
+        message: "Please select a video file to upload." 
+      });
+      setIsUploading(false);
+      setUploadProgress(null);
+      return;
+    }
+    
+    // Ensure video file is in formData
+    const existingFile = formData.get("videoFile");
+    if (!(existingFile instanceof File) || existingFile.size === 0) {
+      // Add video file from state/ref if not in formData
+      formData.set("videoFile", currentVideoFile);
+      // Also restore state if it was cleared
+      if (!videoFile && videoFileRef.current) {
+        setVideoFile(videoFileRef.current);
+      }
+    }
     
     // Ensure duration is set (use extracted or form value)
     const durationValue = videoDuration > 0 ? videoDuration : parseInt(formData.get("duration")?.toString() || "0");
@@ -52,6 +171,7 @@ export function VideoUploadForm() {
         message: "Please ensure video duration is set (minimum 5 seconds). The duration should be automatically detected from the video file." 
       });
       setIsUploading(false);
+      setUploadProgress(null);
       return;
     }
     formData.set("duration", durationValue.toString());
@@ -68,6 +188,8 @@ export function VideoUploadForm() {
     formData.append("hasAds", hasAds ? "true" : "false");
 
     try {
+      setUploadProgress({ stage: "uploading", progress: 10, message: "Uploading video file..." });
+
       const response = await fetch("/api/upload-video", {
         method: "POST",
         body: formData,
@@ -80,34 +202,76 @@ export function VideoUploadForm() {
           success: false, 
           message: result.message || `Upload failed with status ${response.status}` 
         });
+        setUploadProgress(null);
+        setIsUploading(false);
         return;
       }
 
-      setState({ success: true, message: result.message });
-      
-      // Reset form using ref
-      if (formRef.current) {
-        formRef.current.reset();
+      // Store video ID for transcoding check
+      const videoId = result.videoId;
+      setUploadedVideoId(videoId);
+      setUploadProgress({ stage: "transcoding", progress: 20, message: "Video uploaded. Starting transcoding..." });
+
+      // Wait for transcoding to complete
+      try {
+        await waitForTranscoding(videoId);
+        
+        setUploadProgress({ stage: "complete", progress: 100, message: "Upload and transcoding complete!" });
+        setState({ success: true, message: `Video "${result.videoId ? 'uploaded' : 'uploaded'}" uploaded and processed successfully!` });
+        
+        // Reset form using ref
+        if (formRef.current) {
+          formRef.current.reset();
+        }
+        
+        // Reset state after a short delay
+        setTimeout(() => {
+          setVideoFile(null);
+          setSelectedThumbnail(null);
+          setThumbnailBlob(null);
+          setVideoQuality("auto");
+          setVideoDuration(0);
+          setHasAds(false);
+          setUploadProgress(null);
+          setUploadedVideoId(null);
+          
+          // Refresh the page to show the new video
+          router.refresh();
+        }, 2000);
+      } catch (transcodeError) {
+        // Transcoding timeout or error - but video is uploaded
+        setUploadProgress({ stage: "complete", progress: 100, message: "Video uploaded successfully!" });
+        setState({ 
+          success: true, 
+          message: transcodeError instanceof Error 
+            ? transcodeError.message 
+            : "Video uploaded successfully! Transcoding is in progress and will complete shortly." 
+        });
+        
+        // Reset form
+        if (formRef.current) {
+          formRef.current.reset();
+        }
+        
+        setTimeout(() => {
+          setVideoFile(null);
+          setSelectedThumbnail(null);
+          setThumbnailBlob(null);
+          setVideoQuality("auto");
+          setVideoDuration(0);
+          setHasAds(false);
+          setUploadProgress(null);
+          setUploadedVideoId(null);
+          router.refresh();
+        }, 2000);
       }
-      
-      // Reset state
-      setVideoFile(null);
-      setSelectedThumbnail(null);
-      setThumbnailBlob(null);
-      setVideoQuality("auto");
-      setVideoDuration(0);
-      setHasAds(false);
-      
-      // Refresh the page to show the new video
-      setTimeout(() => {
-        router.refresh();
-      }, 1000);
     } catch (error) {
       console.error("Upload error:", error);
       setState({
         success: false,
         message: error instanceof Error ? error.message : "Upload failed. Please try again.",
       });
+      setUploadProgress({ stage: "error", progress: 0, message: "Upload failed" });
     } finally {
       setIsUploading(false);
     }
@@ -198,9 +362,18 @@ export function VideoUploadForm() {
                   setVideoDuration(0);
                 } else {
                   setFileError("");
+                  // Preserve video file - don't clear it when selecting thumbnail
+                  videoFileRef.current = file; // Store in ref first
                   setVideoFile(file);
-                  setSelectedThumbnail(null);
-                  setThumbnailBlob(null);
+                  // Only clear thumbnail if this is a new file selection
+                  if (!videoFileRef.current || videoFileRef.current.name !== file.name) {
+                    // Revoke old thumbnail URL if exists
+                    if (selectedThumbnail && selectedThumbnail.startsWith('blob:')) {
+                      URL.revokeObjectURL(selectedThumbnail);
+                    }
+                    setSelectedThumbnail(null);
+                    setThumbnailBlob(null);
+                  }
                   
                   // Extract duration from video file
                   try {
@@ -267,11 +440,22 @@ export function VideoUploadForm() {
             Select Thumbnail from Video
           </label>
           <ThumbnailSelector
-            videoFile={videoFile}
+            key={videoFile.name} // Force re-render when video file changes
+            videoFile={videoFileRef.current || videoFile} // Use ref as fallback
             onThumbnailSelect={(blob, timestamp) => {
+              // Preserve video file - don't clear it when capturing thumbnail
               setThumbnailBlob(blob);
+              // Revoke old URL if exists
+              if (selectedThumbnail && selectedThumbnail.startsWith('blob:')) {
+                URL.revokeObjectURL(selectedThumbnail);
+              }
               const url = URL.createObjectURL(blob);
               setSelectedThumbnail(url);
+              // Restore video file from ref if it was somehow cleared
+              if (!videoFile && videoFileRef.current) {
+                console.warn("Video file was cleared during thumbnail capture - restoring from ref");
+                setVideoFile(videoFileRef.current);
+              }
             }}
             selectedThumbnail={selectedThumbnail}
           />
@@ -341,15 +525,66 @@ export function VideoUploadForm() {
         </label>
       </div>
 
+      {/* Upload Progress Overlay */}
+      {isUploading && uploadProgress && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">
+                {uploadProgress.stage === "uploading" && "Uploading Video"}
+                {uploadProgress.stage === "transcoding" && "Processing Video"}
+                {uploadProgress.stage === "complete" && "Complete!"}
+                {uploadProgress.stage === "error" && "Error"}
+              </h3>
+              {uploadProgress.stage !== "complete" && uploadProgress.stage !== "error" && (
+                <Loader2 className="size-5 animate-spin text-cyan-400" />
+              )}
+            </div>
+            
+            <div className="mb-4">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300"
+                  style={{ width: `${uploadProgress.progress}%` }}
+                />
+              </div>
+              <p className="mt-2 text-sm text-white/70">{uploadProgress.message}</p>
+            </div>
+
+            {uploadProgress.stage === "error" && (
+              <button
+                onClick={() => {
+                  setIsUploading(false);
+                  setUploadProgress(null);
+                }}
+                className="w-full rounded-lg bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600"
+              >
+                Close
+              </button>
+            )}
+
+            {uploadProgress.stage === "complete" && (
+              <p className="text-sm text-emerald-300">{state.message || "Success!"}</p>
+            )}
+
+            {uploadProgress.stage !== "complete" && uploadProgress.stage !== "error" && (
+              <p className="text-xs text-white/50">
+                Please wait... Do not close this page or navigate away.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={isUploading || !!fileError}
         className="w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isUploading ? "Uploading..." : "Publish video"}
+        {isUploading ? "Processing..." : "Publish video"}
       </button>
 
-      {(state.message || fileError) && (
+      {!isUploading && (state.message || fileError) && (
         <p
           className={`text-sm ${
             state.success ? "text-emerald-300" : "text-rose-300"
