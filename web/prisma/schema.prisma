@@ -58,6 +58,7 @@ model Channel {
   owner         User            @relation(fields: [ownerId], references: [id])
   videos        Video[]
   subscribers   Subscription[]
+  liveStreams   LiveStream[]
 }
 
 model Subscription {
@@ -186,4 +187,37 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+enum LiveStreamStatus {
+  STARTING
+  LIVE
+  ENDED
+}
+
+enum LiveStreamVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+model LiveStream {
+  id          String              @id @default(cuid())
+  title       String
+  description String?
+  streamKey   String              @unique
+  streamUrl   String
+  shareUrl    String
+  status      LiveStreamStatus    @default(STARTING)
+  visibility  LiveStreamVisibility @default(PUBLIC)
+  channelId   String
+  channel     Channel             @relation(fields: [channelId], references: [id])
+  startedAt   DateTime            @default(now())
+  endedAt     DateTime?
+  viewerCount Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([channelId])
+  @@index([status])
+  @@index([visibility, status])
 }

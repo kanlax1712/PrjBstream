@@ -20,10 +20,31 @@ export function GoLiveClient() {
   const [streamDescription, setStreamDescription] = useState("");
   const [streamUrl, setStreamUrl] = useState("");
   const [streamId, setStreamId] = useState("");
+  const [selectedChannelId, setSelectedChannelId] = useState<string>("");
+  const [channels, setChannels] = useState<Array<{ id: string; name: string; handle: string }>>([]);
   const [devices, setDevices] = useState<{
     cameras: MediaDeviceInfo[];
     mics: MediaDeviceInfo[];
   }>({ cameras: [], mics: [] });
+
+  // Fetch user's channels on mount
+  useEffect(() => {
+    const fetchChannels = async () => {
+      try {
+        const response = await fetch("/api/channels");
+        const data = await response.json();
+        if (data.success && data.channels.length > 0) {
+          setChannels(data.channels);
+          setSelectedChannelId(data.channels[0].id);
+        } else {
+          setError("Please create a channel first before going live");
+        }
+      } catch (err) {
+        console.error("Error fetching channels:", err);
+      }
+    };
+    fetchChannels();
+  }, []);
 
   // Get available devices after camera is started
   useEffect(() => {
@@ -248,11 +269,15 @@ export function GoLiveClient() {
       return;
     }
 
+    if (!selectedChannelId) {
+      setError("Please select a channel");
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError("");
 
-      // Get user's first channel (in production, let them select)
       const response = await fetch("/api/go-live", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -260,7 +285,7 @@ export function GoLiveClient() {
           title: streamTitle,
           description: streamDescription,
           visibility: streamVisibility,
-          channelId: "default", // In production, get from user's channels
+          channelId: selectedChannelId,
         }),
       });
 
@@ -294,9 +319,33 @@ export function GoLiveClient() {
     }
   };
 
-  const stopLive = () => {
-    setIsLive(false);
-    // In production: Stop streaming to server
+  const stopLive = async () => {
+    if (!streamId) {
+      setIsLive(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/go-live?streamId=${streamId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsLive(false);
+        setStreamId("");
+        setStreamUrl("");
+      } else {
+        setError(data.message || "Failed to end stream");
+      }
+    } catch (err: any) {
+      console.error("Stop live error:", err);
+      setError("Failed to end stream. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -371,49 +420,95 @@ export function GoLiveClient() {
           </div>
 
           {/* Controls */}
-          <div className="flex flex-wrap gap-3">
+          <div className="space-y-3">
             {!cameraActive ? (
               <button
                 onClick={startCamera}
                 disabled={isLoading}
-                className="flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Video className="size-4" />
                 {isLoading ? "Starting..." : "Start Camera"}
               </button>
             ) : (
               <>
-                <button
-                  onClick={stopCamera}
-                  className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
-                >
-                  Stop Camera
-                </button>
-                <button
-                  onClick={toggleMic}
-                  className={`flex items-center gap-2 rounded-full border border-white/20 px-5 py-3 text-sm font-semibold transition ${
-                    micActive
-                      ? "bg-white/10 text-white hover:bg-white/20"
-                      : "bg-red-500/20 text-red-300 hover:bg-red-500/30"
-                  }`}
-                >
-                  <Mic className="size-4" />
-                  {micActive ? "Mic On" : "Mic Off"}
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={stopCamera}
+                    className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
+                  >
+                    Stop Camera
+                  </button>
+                  <button
+                    onClick={toggleMic}
+                    className={`flex items-center gap-2 rounded-full border border-white/20 px-5 py-3 text-sm font-semibold transition ${
+                      micActive
+                        ? "bg-white/10 text-white hover:bg-white/20"
+                        : "bg-red-500/20 text-red-300 hover:bg-red-500/30"
+                    }`}
+                  >
+                    <Mic className="size-4" />
+                    {micActive ? "Mic On" : "Mic Off"}
+                  </button>
+                </div>
+                
+                {/* Public/Private Selection - Prominent before Go Live */}
+                {!isLive && (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <label className="text-sm font-semibold text-white/90 mb-3 block">
+                      Stream Visibility
+                    </label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setStreamVisibility("PUBLIC")}
+                        className={`flex-1 flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                          streamVisibility === "PUBLIC"
+                            ? "border-cyan-400 bg-cyan-500/20 text-cyan-300"
+                            : "border-white/10 bg-transparent text-white/70 hover:bg-white/5"
+                        }`}
+                      >
+                        <Globe className="size-4" />
+                        Public
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStreamVisibility("PRIVATE")}
+                        className={`flex-1 flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                          streamVisibility === "PRIVATE"
+                            ? "border-cyan-400 bg-cyan-500/20 text-cyan-300"
+                            : "border-white/10 bg-transparent text-white/70 hover:bg-white/5"
+                        }`}
+                      >
+                        <Lock className="size-4" />
+                        Private
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-white/50">
+                      {streamVisibility === "PUBLIC"
+                        ? "Anyone can view this stream"
+                        : "Only your subscribers can view this stream"}
+                    </p>
+                  </div>
+                )}
+
+                {/* Go Live Button */}
                 {!isLive ? (
                   <button
                     onClick={startLive}
-                    className="flex items-center gap-2 rounded-full bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-600"
+                    disabled={isLoading || !streamTitle.trim() || !selectedChannelId}
+                    className="w-full flex items-center justify-center gap-2 rounded-full bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Radio className="size-4" />
-                    Go Live
+                    {isLoading ? "Starting..." : "Go Live"}
                   </button>
                 ) : (
                   <button
                     onClick={stopLive}
-                    className="flex items-center gap-2 rounded-full bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-600"
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center gap-2 rounded-full bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    End Stream
+                    {isLoading ? "Ending..." : "End Stream"}
                   </button>
                 )}
               </>
@@ -430,6 +525,51 @@ export function GoLiveClient() {
             </h3>
 
             <div className="space-y-4">
+              {/* Channel Selection */}
+              {channels.length > 0 && (
+                <div>
+                  <label className="text-sm text-white/70">Channel *</label>
+                  <select
+                    value={selectedChannelId}
+                    onChange={(e) => setSelectedChannelId(e.target.value)}
+                    disabled={isLive}
+                    className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50"
+                  >
+                    {channels.map((channel) => (
+                      <option key={channel.id} value={channel.id}>
+                        {channel.name} (@{channel.handle})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Stream Title */}
+              <div>
+                <label className="text-sm text-white/70">Stream Title *</label>
+                <input
+                  type="text"
+                  value={streamTitle}
+                  onChange={(e) => setStreamTitle(e.target.value)}
+                  disabled={isLive}
+                  placeholder="My Live Stream"
+                  className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50"
+                />
+              </div>
+
+              {/* Stream Description */}
+              <div>
+                <label className="text-sm text-white/70">Description (optional)</label>
+                <textarea
+                  value={streamDescription}
+                  onChange={(e) => setStreamDescription(e.target.value)}
+                  disabled={isLive}
+                  rows={3}
+                  placeholder="Tell viewers what your stream is about..."
+                  className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50"
+                />
+              </div>
+
               {/* Camera Selection */}
               {devices.cameras.length > 0 && (
                 <div>
@@ -467,70 +607,6 @@ export function GoLiveClient() {
                   </select>
                 </div>
               )}
-
-              {/* Stream Title */}
-              <div>
-                <label className="text-sm text-white/70">Stream Title *</label>
-                <input
-                  type="text"
-                  value={streamTitle}
-                  onChange={(e) => setStreamTitle(e.target.value)}
-                  disabled={isLive}
-                  placeholder="My Live Stream"
-                  className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50"
-                />
-              </div>
-
-              {/* Stream Description */}
-              <div>
-                <label className="text-sm text-white/70">Description (optional)</label>
-                <textarea
-                  value={streamDescription}
-                  onChange={(e) => setStreamDescription(e.target.value)}
-                  disabled={isLive}
-                  rows={3}
-                  placeholder="Tell viewers what your stream is about..."
-                  className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50"
-                />
-              </div>
-
-              {/* Stream Visibility */}
-              <div>
-                <label className="text-sm text-white/70">Stream Visibility</label>
-                <div className="mt-2 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setStreamVisibility("PUBLIC")}
-                    disabled={isLive}
-                    className={`flex-1 flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
-                      streamVisibility === "PUBLIC"
-                        ? "border-cyan-400 bg-cyan-500/20 text-cyan-300"
-                        : "border-white/10 bg-transparent text-white/70 hover:bg-white/5"
-                    } disabled:opacity-50`}
-                  >
-                    <Globe className="size-4" />
-                    Public
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStreamVisibility("PRIVATE")}
-                    disabled={isLive}
-                    className={`flex-1 flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
-                      streamVisibility === "PRIVATE"
-                        ? "border-cyan-400 bg-cyan-500/20 text-cyan-300"
-                        : "border-white/10 bg-transparent text-white/70 hover:bg-white/5"
-                    } disabled:opacity-50`}
-                  >
-                    <Lock className="size-4" />
-                    Private
-                  </button>
-                </div>
-                <p className="mt-2 text-xs text-white/50">
-                  {streamVisibility === "PUBLIC"
-                    ? "Anyone can view this stream"
-                    : "Only your subscribers can view this stream"}
-                </p>
-              </div>
 
               {/* Share URL (when live) */}
               {isLive && streamUrl && (
