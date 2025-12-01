@@ -8,8 +8,6 @@ import { formatDuration } from "@/lib/format";
 import { Upload, Pencil, FileVideo, Loader2, X } from "lucide-react";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
-const TRANSCODE_CHECK_INTERVAL = 3000; // Check every 3 seconds
-const MAX_TRANSCODE_WAIT_TIME = 300000; // Max 5 minutes wait
 
 type UploadState = {
   success: boolean;
@@ -40,8 +38,6 @@ export function VideoUploadForm() {
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [hasAds, setHasAds] = useState<boolean>(false);
   const [uploadMethod, setUploadMethod] = useState<"local" | "youtube">("local");
-  const [uploadedVideoId, setUploadedVideoId] = useState<string | null>(null);
-  const transcodeCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync videoFile state with ref
   useEffect(() => {
@@ -49,81 +45,6 @@ export function VideoUploadForm() {
       videoFileRef.current = videoFile;
     }
   }, [videoFile]);
-
-  // Cleanup transcoding check interval on unmount
-  useEffect(() => {
-    return () => {
-      if (transcodeCheckIntervalRef.current) {
-        clearInterval(transcodeCheckIntervalRef.current);
-      }
-    };
-  }, []);
-
-  // Check transcoding status
-  const checkTranscodingStatus = async (videoId: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`/api/video/${videoId}/status`);
-      if (!response.ok) {
-        return false;
-      }
-      const status = await response.json();
-      return status.isComplete || status.hasFailed;
-    } catch (error) {
-      console.error("Error checking transcoding status:", error);
-      return false;
-    }
-  };
-
-  // Poll for transcoding completion
-  const waitForTranscoding = (videoId: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      
-      const checkStatus = async () => {
-        try {
-          const isComplete = await checkTranscodingStatus(videoId);
-          
-          if (isComplete) {
-            if (transcodeCheckIntervalRef.current) {
-              clearInterval(transcodeCheckIntervalRef.current);
-              transcodeCheckIntervalRef.current = null;
-            }
-            resolve();
-            return;
-          }
-
-          // Check if we've exceeded max wait time
-          if (Date.now() - startTime > MAX_TRANSCODE_WAIT_TIME) {
-            if (transcodeCheckIntervalRef.current) {
-              clearInterval(transcodeCheckIntervalRef.current);
-              transcodeCheckIntervalRef.current = null;
-            }
-            reject(new Error("Transcoding is taking longer than expected. Your video is uploaded and will be available shortly."));
-            return;
-          }
-
-          // Update progress message
-          const response = await fetch(`/api/video/${videoId}/status`);
-          if (response.ok) {
-            const status = await response.json();
-            setUploadProgress({
-              stage: "transcoding",
-              progress: Math.min(90, (status.qualityStatuses.ready / Math.max(status.qualityStatuses.total, 1)) * 80 + 10),
-              message: status.message || "Processing video...",
-            });
-          }
-        } catch (error) {
-          console.error("Error polling transcoding status:", error);
-        }
-      };
-
-      // Check immediately
-      checkStatus();
-      
-      // Then check periodically
-      transcodeCheckIntervalRef.current = setInterval(checkStatus, TRANSCODE_CHECK_INTERVAL);
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -207,64 +128,30 @@ export function VideoUploadForm() {
         return;
       }
 
-      // Store video ID for transcoding check
-      const videoId = result.videoId;
-      setUploadedVideoId(videoId);
-      setUploadProgress({ stage: "transcoding", progress: 20, message: "Video uploaded. Starting transcoding..." });
-
-      // Wait for transcoding to complete
-      try {
-        await waitForTranscoding(videoId);
-        
-        setUploadProgress({ stage: "complete", progress: 100, message: "Upload and transcoding complete!" });
-        setState({ success: true, message: `Video "${result.videoId ? 'uploaded' : 'uploaded'}" uploaded and processed successfully!` });
-        
-        // Reset form using ref
-        if (formRef.current) {
-          formRef.current.reset();
-        }
-        
-        // Reset state after a short delay
-        setTimeout(() => {
-          setVideoFile(null);
-          setSelectedThumbnail(null);
-          setThumbnailBlob(null);
-          setVideoQuality("auto");
-          setVideoDuration(0);
-          setHasAds(false);
-          setUploadProgress(null);
-          setUploadedVideoId(null);
-          
-          // Refresh the page to show the new video
-          router.refresh();
-        }, 2000);
-      } catch (transcodeError) {
-        // Transcoding timeout or error - but video is uploaded
-        setUploadProgress({ stage: "complete", progress: 100, message: "Video uploaded successfully!" });
-        setState({ 
-          success: true, 
-          message: transcodeError instanceof Error 
-            ? transcodeError.message 
-            : "Video uploaded successfully! Transcoding is in progress and will complete shortly." 
-        });
-        
-        // Reset form
-        if (formRef.current) {
-          formRef.current.reset();
-        }
-        
-        setTimeout(() => {
-          setVideoFile(null);
-          setSelectedThumbnail(null);
-          setThumbnailBlob(null);
-          setVideoQuality("auto");
-          setVideoDuration(0);
-          setHasAds(false);
-          setUploadProgress(null);
-          setUploadedVideoId(null);
-          router.refresh();
-        }, 2000);
+      // SDLC: Show success immediately after upload completes
+      // Transcoding happens in background and doesn't block the user
+      setUploadProgress({ stage: "complete", progress: 100, message: "Upload Successfully!" });
+      setState({ success: true, message: `Video "${result.videoId ? 'uploaded' : 'uploaded'}" uploaded successfully!` });
+      
+      // Reset form using ref
+      if (formRef.current) {
+        formRef.current.reset();
       }
+      
+      // Close modal and reset state after showing success message
+      setTimeout(() => {
+        setVideoFile(null);
+        setSelectedThumbnail(null);
+        setThumbnailBlob(null);
+        setVideoQuality("auto");
+        setVideoDuration(0);
+        setHasAds(false);
+        setUploadProgress(null);
+        setIsUploading(false);
+        
+        // Refresh the page to show the new video
+        router.refresh();
+      }, 2000); // Show success message for 2 seconds, then close
     } catch (error) {
       console.error("Upload error:", error);
       setState({
@@ -528,16 +415,23 @@ export function VideoUploadForm() {
       {/* Upload Progress Overlay */}
       {isUploading && uploadProgress && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 backdrop-blur-md p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-white">
                 {uploadProgress.stage === "uploading" && "Uploading Video"}
                 {uploadProgress.stage === "transcoding" && "Processing Video"}
-                {uploadProgress.stage === "complete" && "Complete!"}
+                {uploadProgress.stage === "complete" && "Upload Successfully!"}
                 {uploadProgress.stage === "error" && "Error"}
               </h3>
               {uploadProgress.stage !== "complete" && uploadProgress.stage !== "error" && (
                 <Loader2 className="size-5 animate-spin text-cyan-400" />
+              )}
+              {uploadProgress.stage === "complete" && (
+                <div className="flex size-8 items-center justify-center rounded-full bg-emerald-500/20">
+                  <svg className="size-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
               )}
             </div>
             
@@ -564,7 +458,10 @@ export function VideoUploadForm() {
             )}
 
             {uploadProgress.stage === "complete" && (
-              <p className="text-sm text-emerald-300">{state.message || "Success!"}</p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-emerald-300">{state.message || "Upload Successfully!"}</p>
+                <p className="text-xs text-white/50">Transcoding will continue in the background...</p>
+              </div>
             )}
 
             {uploadProgress.stage !== "complete" && uploadProgress.stage !== "error" && (
