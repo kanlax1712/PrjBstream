@@ -1,10 +1,5 @@
 {
-  "buildCommand": "prisma generate && (prisma db push --skip-generate || true) && next build",
-  "devCommand": "next dev",
-  "installCommand": "npm install",
-  "framework": "nextjs",
-  "regions": ["iad1"],
-  "rootDirectory": "web",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 300
