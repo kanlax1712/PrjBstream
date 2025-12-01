@@ -66,6 +66,7 @@ async function uploadToVercelBlob(
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
+    // Vercel Blob automatically reads BLOB_READ_WRITE_TOKEN from environment variables
     const blob = await put(filename, buffer, {
       access: "public",
       contentType: file.type,
