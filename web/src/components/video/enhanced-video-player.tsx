@@ -1327,9 +1327,12 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             </button>
 
             {/* Settings Menu */}
-            <div className="relative settings-menu-container">
+            <div className="relative settings-menu-container z-50">
               <button
-                onClick={() => setShowSettings(!showSettings)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSettings(!showSettings);
+                }}
                 className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation"
                 aria-label="Settings"
                 type="button"
@@ -1338,32 +1341,35 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               </button>
 
               {showSettings && (
-                <div 
-                  className={`absolute top-full right-0 mt-2 w-52 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
-                    isFullscreen ? 'z-[9999]' : 'z-50'
-                  }`}
-                  style={{
-                    ...(isFullscreen ? {
-                      position: 'fixed',
-                      top: '80px',
-                      right: '20px',
-                      maxHeight: 'calc(100vh - 100px)', // Fullscreen: ensure it fits in viewport
-                    } : {
-                      maxHeight: '400px', // Normal: fixed max height that shows all options
-                    }),
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: 'rgba(255, 255, 255, 0.7) rgba(0, 0, 0, 0.3)',
-                    WebkitOverflowScrolling: 'touch',
-                    // Ensure scrollbar is always visible when needed
-                    overflowY: 'auto',
-                  }}
-                  onScroll={(e) => e.stopPropagation()}
-                  onWheel={(e) => {
-                    e.stopPropagation();
-                    // Allow scrolling within the settings panel
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <>
+                  {/* Backdrop to close on outside click */}
+                  <div 
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowSettings(false)}
+                    style={{ pointerEvents: 'auto' }}
+                  />
+                  {/* Settings Panel - Overlay that doesn't affect layout */}
+                  <div 
+                    className={`absolute bottom-full right-0 mb-2 w-52 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
+                      isFullscreen ? 'z-[9999]' : 'z-50'
+                    }`}
+                    style={{
+                      position: 'absolute', // Overlay - doesn't push content
+                      maxHeight: isFullscreen ? 'calc(100vh - 100px)' : '400px',
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: 'rgba(255, 255, 255, 0.7) rgba(0, 0, 0, 0.3)',
+                      WebkitOverflowScrolling: 'touch',
+                      overflowY: 'auto',
+                      // Ensure it appears above content without affecting layout
+                      pointerEvents: 'auto',
+                    }}
+                    onScroll={(e) => e.stopPropagation()}
+                    onWheel={(e) => {
+                      e.stopPropagation();
+                      // Allow scrolling within the settings panel
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                   {/* Quality Selector */}
                   <div className="mb-3">
                     <label className="mb-1.5 block text-xs font-semibold text-white/70">
