@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { deleteVideo } from "@/app/actions/videos";
 
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function DeleteVideoButton({ videoId, videoTitle }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +30,9 @@ export function DeleteVideoButton({ videoId, videoTitle }: Props) {
         console.log("Delete result:", result);
         
         if (result?.success) {
-          // Use router to refresh the page
-          window.location.reload();
+          // Redirect to studio page after successful deletion
+          router.push("/studio");
+          router.refresh();
         } else {
           const errorMsg = result?.message || "Failed to delete video. Please try again.";
           setError(errorMsg);

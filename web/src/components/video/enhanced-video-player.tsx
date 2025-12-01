@@ -296,13 +296,19 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   useEffect(() => {
     const trackView = async () => {
       try {
-        await fetch("/api/track-view", {
+        const response = await fetch("/api/track-view", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ videoId: video.id }),
         });
+        
+        // Silently handle 404 (video might be deleted) and other errors
+        if (!response.ok && response.status !== 404) {
+          console.error("Failed to track view:", response.status, response.statusText);
+        }
       } catch (error) {
-        console.error("Failed to track view:", error);
+        // Silently handle network errors (video might be deleted or network issue)
+        // Don't log to console to avoid noise
       }
     };
 
@@ -1437,7 +1443,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           <span>By {video.channel.name}</span>
           <span>•</span>
           <span suppressHydrationWarning>
-            {relativeTime !== null ? relativeTime : (isClient ? formatRelative(video.publishedAt) : "")}
+            {relativeTime || ""}
           </span>
           <span>•</span>
           <span>{formatDuration(duration)}</span>
