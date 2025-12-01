@@ -68,12 +68,13 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   const [adCompleted, setAdCompleted] = useState(false);
   const [isClient, setIsClient] = useState(false);
   // Relative time - client-side only to avoid hydration mismatch
-  const [relativeTime, setRelativeTime] = useState<string>("");
+  // Start with null, will be set after client-side hydration
+  const [relativeTime, setRelativeTime] = useState<string | null>(null);
 
   // Mark as client-side after mount and calculate relative time
   useEffect(() => {
     setIsClient(true);
-    // Calculate relative time on client side only
+    // Calculate relative time on client side only (after hydration)
     setRelativeTime(formatRelative(video.publishedAt));
     
     // Update relative time every minute
@@ -1435,7 +1436,13 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/60 sm:gap-3 sm:text-sm">
           <span>By {video.channel.name}</span>
           <span>•</span>
-          <span suppressHydrationWarning>{relativeTime || formatRelative(video.publishedAt)}</span>
+          {isClient ? (
+            <span suppressHydrationWarning>
+              {relativeTime || formatRelative(video.publishedAt)}
+            </span>
+          ) : (
+            <span suppressHydrationWarning>Loading...</span>
+          )}
           <span>•</span>
           <span>{formatDuration(duration)}</span>
           {session?.user && (
