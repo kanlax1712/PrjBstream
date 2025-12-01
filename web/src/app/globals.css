@@ -275,38 +275,59 @@ video:-ms-fullscreen {
   animation: pulse-once 2s ease-in-out;
 }
 
-/* Settings Panel Scrollbar Styles */
+/* Settings Panel Scrollbar Styles - Enhanced for better visibility and scrolling */
 .settings-panel-scroll {
   /* Firefox */
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.2);
+  scrollbar-color: rgba(255, 255, 255, 0.5) rgba(0, 0, 0, 0.2);
+  /* Ensure smooth scrolling */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  /* Prevent content from being cut off */
+  overscroll-behavior: contain;
 }
 
 .settings-panel-scroll::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 .settings-panel-scroll::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 10px;
-  margin: 4px 0;
+  margin: 4px;
 }
 
 .settings-panel-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.5);
   border-radius: 10px;
-  border: 2px solid rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  background-clip: padding-box;
+  min-height: 40px; /* Ensure thumb is always visible */
   transition: background 0.2s;
 }
 
 .settings-panel-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.7);
 }
 
-/* Ensure scrolling works on mobile */
-.settings-panel-scroll {
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+.settings-panel-scroll::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Ensure settings panel is scrollable on all devices */
+@media (max-width: 768px) {
+  .settings-panel-scroll {
+    max-height: calc(100vh - 120px) !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Fullscreen specific styles */
+.video-player-container:fullscreen .settings-panel-scroll,
+.video-player-container:-webkit-full-screen .settings-panel-scroll,
+.video-player-container:-moz-full-screen .settings-panel-scroll {
+  max-height: calc(100vh - 160px) !important;
 }
 
 /* Settings menu container scrollbar (backward compatibility) */
