@@ -14,6 +14,7 @@
     "db:upload-videos": "node scripts/upload-videos-to-vercel.mjs",
     "db:sync-videos": "node scripts/sync-video-data.mjs",
     "db:fix-thumbnails": "node scripts/fix-thumbnails-local.mjs",
+    "db:verify": "node scripts/verify-prisma-accelerate.mjs",
     "postinstall": "prisma generate"
   },
   "prisma": {
