@@ -535,7 +535,38 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
       return;
     }
     
-    // Only toggle for non-YouTube videos (YouTube iframe handles its own clicks)
+    // Handle YouTube videos - trigger play via postMessage
+    if (isYouTubeVideo() && typeof window !== "undefined") {
+      // Only play if iframe is ready and video is not playing
+      if (youtubeIframeReady && !isPlaying) {
+        try {
+          const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
+          if (iframe && iframe.contentWindow) {
+            const iframeSrc = iframe.src;
+            if (iframeSrc && iframeSrc.includes("youtube.com")) {
+              // Send play command to YouTube iframe
+              iframe.contentWindow.postMessage(
+                JSON.stringify({ event: "command", func: "playVideo", args: "" }),
+                "https://www.youtube.com"
+              );
+              setIsPlaying(true);
+              setShowThumbnail(false); // Hide thumbnail when playing
+            }
+          }
+        } catch (error) {
+          console.error("Error playing YouTube video:", error);
+          // Fallback: click on iframe directly (if it's visible)
+          const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
+          if (iframe) {
+            // Try to click the iframe (YouTube will handle it)
+            iframe.click();
+          }
+        }
+      }
+      return;
+    }
+    
+    // Handle regular videos
     if (!isYouTubeVideo()) {
       togglePlayPause();
     }
@@ -894,7 +925,10 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               className="absolute inset-0 size-full pointer-events-auto"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
-              style={{ display: showAd && !adCompleted ? "none" : "block" }}
+              style={{ 
+                display: showAd && !adCompleted ? "none" : showThumbnail ? "none" : "block",
+                zIndex: showThumbnail ? 1 : 10
+              }}
               onLoad={() => {
                 try {
                   setIsLoading(false);
@@ -957,8 +991,9 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
         {/* Thumbnail overlay (YouTube-style) - shows before video plays */}
         {showThumbnail && !isLoading && !videoError && (
           <div 
-            className="absolute inset-0 z-10 flex items-center justify-center bg-black"
+            className="absolute inset-0 z-10 flex items-center justify-center bg-black cursor-pointer"
             style={{ display: isClient && showAd && !adCompleted ? "none" : "block" }}
+            onClick={handleVideoClick}
           >
             {(() => {
               // Get thumbnail URL - handle YouTube, regular videos, and defaults
@@ -982,14 +1017,14 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                 <img
                   src={thumbnailUrl}
                   alt={video.title}
-                  className="size-full object-cover"
+                  className="size-full object-cover pointer-events-none"
                 />
               ) : null;
             })()}
-            {/* Play button overlay */}
+            {/* Play button overlay - always show when thumbnail is visible */}
             {!isPlaying && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex size-20 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm transition hover:bg-black/80">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="flex size-20 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm transition hover:bg-black/80 pointer-events-auto">
                   <Play className="size-10 text-white" />
                 </div>
               </div>
