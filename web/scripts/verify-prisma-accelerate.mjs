@@ -6,16 +6,37 @@
  */
 
 import { PrismaClient } from "@prisma/client";
-import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { readFileSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables
-dotenv.config({ path: join(__dirname, "../.env.local") });
-dotenv.config({ path: join(__dirname, "../.env") });
+// Load environment variables manually (no dotenv dependency needed)
+function loadEnvFile(filePath) {
+  try {
+    const content = readFileSync(filePath, "utf-8");
+    content.split("\n").forEach((line) => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith("#")) {
+        const [key, ...valueParts] = trimmed.split("=");
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join("=").replace(/^["']|["']$/g, "");
+          if (!process.env[key]) {
+            process.env[key] = value;
+          }
+        }
+      }
+    });
+  } catch (err) {
+    // File doesn't exist, that's okay
+  }
+}
+
+// Load .env files if they exist
+loadEnvFile(join(__dirname, "../.env.local"));
+loadEnvFile(join(__dirname, "../.env"));
 
 async function verifyConnection() {
   console.log("🔍 Verifying Prisma Accelerate Connection...\n");
