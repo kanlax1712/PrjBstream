@@ -939,7 +939,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               allowFullScreen
               style={{ 
                 display: showAd && !adCompleted ? "none" : showThumbnail ? "none" : "block",
-                zIndex: showThumbnail ? 1 : 10
+                zIndex: showThumbnail ? 5 : 10
               }}
               onLoad={() => {
                 try {
@@ -1001,10 +1001,10 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
         )}
         
         {/* Thumbnail overlay (YouTube-style) - shows before video plays */}
-        {showThumbnail && !isLoading && !videoError && (
+        {isClient && showThumbnail && !isLoading && !videoError && (
           <div 
-            className="absolute inset-0 z-10 flex items-center justify-center bg-black cursor-pointer"
-            style={{ display: isClient && showAd && !adCompleted ? "none" : "block" }}
+            className="absolute inset-0 z-20 flex items-center justify-center bg-black cursor-pointer"
+            style={{ display: showAd && !adCompleted ? "none" : "block" }}
             onClick={handleVideoClick}
           >
             {(() => {
@@ -1436,13 +1436,9 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/60 sm:gap-3 sm:text-sm">
           <span>By {video.channel.name}</span>
           <span>•</span>
-          {isClient ? (
-            <span suppressHydrationWarning>
-              {relativeTime || formatRelative(video.publishedAt)}
-            </span>
-          ) : (
-            <span suppressHydrationWarning>Loading...</span>
-          )}
+          <span suppressHydrationWarning>
+            {relativeTime !== null ? relativeTime : (isClient ? formatRelative(video.publishedAt) : "")}
+          </span>
           <span>•</span>
           <span>{formatDuration(duration)}</span>
           {session?.user && (
