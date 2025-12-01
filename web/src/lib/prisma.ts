@@ -5,8 +5,8 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Prisma Client automatically reads DATABASE_URL from environment variables
-// For Prisma Accelerate, ensure DATABASE_URL is set to PRISMA_DATABASE_URL value in Vercel
-// OR set DATABASE_URL to use the prisma+postgres:// protocol directly
+// IMPORTANT: In Vercel, set DATABASE_URL to use PRISMA_DATABASE_URL value
+// (the prisma+postgres://accelerate.prisma-data.net URL) for Prisma Accelerate
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
