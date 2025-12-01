@@ -30,9 +30,9 @@ export function DeleteVideoButton({ videoId, videoTitle }: Props) {
         console.log("Delete result:", result);
         
         if (result?.success) {
-          // Redirect to studio page after successful deletion
-          router.push("/studio");
-          router.refresh();
+          // SDLC: Force hard redirect to studio page to ensure page refresh
+          // This ensures all data is reloaded and the deleted video is removed from UI
+          window.location.href = "/studio";
         } else {
           const errorMsg = result?.message || "Failed to delete video. Please try again.";
           setError(errorMsg);

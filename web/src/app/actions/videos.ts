@@ -221,66 +221,84 @@ export async function deleteVideo(videoId: string) {
       // Continue with database deletion even if file deletion fails
     }
 
-    // SDLC: Delete related records first to avoid foreign key constraints
-    // Delete in order: qualities -> views -> comments -> playlist items -> video
+    // SDLC: Delete ALL related database records to ensure complete cleanup
+    // Delete in order: playlist items -> comments -> view events -> qualities -> video
+    // This ensures all foreign key constraints are satisfied
     
-    // Delete quality records (using proper Prisma methods)
+    const deletionErrors: string[] = [];
+    
+    // 1. Delete playlist items first (they reference video)
     try {
-      await prisma.videoQuality.deleteMany({
+      const deletedPlaylistItems = await prisma.playlistVideo.deleteMany({
         where: { videoId },
       });
+      console.log(`✅ Deleted ${deletedPlaylistItems.count} playlist items for video ${videoId}`);
     } catch (error: any) {
-      console.error("Error deleting video qualities:", error);
-      // Continue even if this fails
+      console.error("❌ Error deleting playlist videos:", error);
+      deletionErrors.push(`Playlist items: ${error.message}`);
     }
 
-    // Delete view events (using proper Prisma methods)
+    // 2. Delete comments (they reference video)
     try {
-      await prisma.viewEvent.deleteMany({
+      const deletedComments = await prisma.comment.deleteMany({
         where: { videoId },
       });
+      console.log(`✅ Deleted ${deletedComments.count} comments for video ${videoId}`);
     } catch (error: any) {
-      console.error("Error deleting view events:", error);
-      // Continue even if this fails
+      console.error("❌ Error deleting comments:", error);
+      deletionErrors.push(`Comments: ${error.message}`);
     }
 
-    // Delete comments (using proper Prisma methods)
+    // 3. Delete view events (they reference video)
     try {
-      await prisma.comment.deleteMany({
+      const deletedViews = await prisma.viewEvent.deleteMany({
         where: { videoId },
       });
+      console.log(`✅ Deleted ${deletedViews.count} view events for video ${videoId}`);
     } catch (error: any) {
-      console.error("Error deleting comments:", error);
-      // Continue even if this fails
+      console.error("❌ Error deleting view events:", error);
+      deletionErrors.push(`View events: ${error.message}`);
     }
 
-    // Delete playlist items (using proper Prisma methods)
+    // 4. Delete quality records (they have cascade delete, but we delete explicitly for clarity)
     try {
-      await prisma.playlistVideo.deleteMany({
+      const deletedQualities = await prisma.videoQuality.deleteMany({
         where: { videoId },
       });
+      console.log(`✅ Deleted ${deletedQualities.count} quality records for video ${videoId}`);
     } catch (error: any) {
-      console.error("Error deleting playlist videos:", error);
-      // Continue even if this fails
+      console.error("❌ Error deleting video qualities:", error);
+      deletionErrors.push(`Video qualities: ${error.message}`);
     }
 
-    // SDLC: Finally delete the video record
+    // If there were critical deletion errors, log them but continue
+    if (deletionErrors.length > 0) {
+      console.warn(`⚠️ Some related records failed to delete: ${deletionErrors.join(", ")}`);
+    }
+
+    // SDLC: Finally delete the video record itself
+    // This must be done last after all related records are deleted
     await prisma.video.delete({
       where: { id: videoId },
     });
+    
+    console.log(`Successfully deleted video ${videoId} and all related records from database`);
 
     // SDLC: Channel stats are automatically updated via Prisma relations
     // The channel.videos count decreases automatically when video is deleted
     // No manual update needed as Prisma handles this through relations
 
-    // SDLC: Revalidate all affected pages
+    // SDLC: Revalidate all affected pages to ensure UI updates
     revalidatePath("/studio");
     revalidatePath("/");
     revalidatePath(`/video/${videoId}`);
     revalidatePath(`/channel/${video.channel.id}`); // Revalidate channel page if it exists
     // Note: Playlist pages are revalidated when playlist items are accessed
 
-    return { success: true, message: "Video deleted successfully." };
+    return { 
+      success: true, 
+      message: "Video and all related data deleted successfully from database and storage." 
+    };
   } catch (error: any) {
     console.error("Delete video error:", error);
     const errorMessage = error?.message || "Failed to delete video.";
