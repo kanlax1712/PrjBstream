@@ -1347,17 +1347,22 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                       position: 'fixed',
                       bottom: '80px',
                       right: '20px',
-                      maxHeight: 'calc(100vh - 160px)', // Fullscreen: viewport height minus controls space
+                      maxHeight: '70vh', // Fullscreen: use 70% of viewport height
                     } : {
-                      maxHeight: 'calc(100vh - 200px)', // Normal: viewport height minus header/controls
+                      maxHeight: '60vh', // Normal: use 60% of viewport height
                     }),
                     scrollbarWidth: 'thin',
-                    scrollbarColor: 'rgba(255, 255, 255, 0.5) rgba(0, 0, 0, 0.2)',
+                    scrollbarColor: 'rgba(255, 255, 255, 0.6) rgba(0, 0, 0, 0.3)',
                     WebkitOverflowScrolling: 'touch',
-                    minHeight: '200px',
+                    minHeight: '250px',
+                    // Ensure content starts from top and is scrollable
+                    overscrollBehavior: 'contain',
                   }}
                   onScroll={(e) => e.stopPropagation()}
-                  onWheel={(e) => e.stopPropagation()}
+                  onWheel={(e) => {
+                    e.stopPropagation();
+                    // Allow scrolling within the settings panel
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Quality Selector */}
