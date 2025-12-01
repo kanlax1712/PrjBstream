@@ -27,20 +27,18 @@ export function DeleteVideoButton({ videoId, videoTitle }: Props) {
         const result = await deleteVideo(videoId);
         console.log("Delete result:", result);
         
-        if (result.success) {
-          // Use window.location for a full page reload to ensure clean state
-          window.location.href = "/studio";
+        if (result?.success) {
+          // Use router to refresh the page
+          window.location.reload();
         } else {
-          const errorMsg = result.message || "Failed to delete video. Please try again.";
+          const errorMsg = result?.message || "Failed to delete video. Please try again.";
           setError(errorMsg);
-          alert(errorMsg);
           setShowConfirm(false);
         }
       } catch (error: any) {
         console.error("Delete error:", error);
         const errorMsg = error?.message || "An error occurred while deleting the video. Please try again.";
         setError(errorMsg);
-        alert(errorMsg);
         setShowConfirm(false);
       }
     });
