@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       // Return detailed validation errors
-      const errors = parsed.error.errors.map((e) => ({
+      const errors = parsed.error.issues.map((e) => ({
         field: e.path.join("."),
         message: e.message,
       }));

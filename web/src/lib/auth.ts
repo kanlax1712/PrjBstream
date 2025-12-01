@@ -33,12 +33,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET || "fallback-secret-key-change-in-production",
   // Suppress JWT decryption errors in logs (they're handled gracefully)
   logger: {
-    error: (code, metadata) => {
+    error: (error: Error) => {
       // Don't log JWT decryption errors - they're expected for stale cookies
-      if (code === "JWTSessionError" || metadata?.error?.message?.includes("decryption")) {
+      if (error.name === "JWTSessionError" || error.message?.includes("decryption")) {
         return; // Silently ignore
       }
-      console.error("[auth][error]", code, metadata);
+      console.error("[auth][error]", error);
     },
   },
   session: {
@@ -88,7 +88,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           MicrosoftEntraID({
             clientId: process.env.MICROSOFT_CLIENT_ID,
             clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-            tenantId: process.env.MICROSOFT_TENANT_ID || "common",
           }),
         ]
       : []),
@@ -122,7 +121,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         // Sanitize email
-        const sanitizedEmail = sanitizeEmail(credentials.email);
+        const sanitizedEmail = sanitizeEmail(credentials.email as string);
 
         // Check account lockout
         const lockoutStatus = isAccountLocked(sanitizedEmail);
@@ -153,7 +152,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         const passwordMatch = await compare(
-          credentials.password,
+          credentials.password as string,
           user.passwordHash,
         );
 
@@ -201,7 +200,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       try {
         if (token && session.user) {
           session.user.id = token.id as string;
-          session.user.name = token.name;
+          session.user.name = (token.name as string | undefined) || session.user.name;
           // Add OAuth tokens for API access
           if (token.googleAccessToken) {
             (session as any).googleAccessToken = token.googleAccessToken;

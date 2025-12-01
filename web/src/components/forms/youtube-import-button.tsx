@@ -73,16 +73,12 @@ export function YoutubeImportButton() {
     setIsLoading(true);
     try {
       // Use NextAuth signIn function which handles OAuth flow properly
-      const result = await signIn("google", {
+      // When redirect: true, signIn returns void and redirects automatically
+      await signIn("google", {
         callbackUrl: "/studio?youtube=true",
         redirect: true,
       });
-      
-      // If redirect is false, handle manually
-      if (result && !result.ok && result.error) {
-        setError(`OAuth error: ${result.error}. Please check your Google OAuth configuration.`);
-        setIsLoading(false);
-      }
+      // If we reach here, redirect was successful (though we shouldn't reach here)
     } catch (err: any) {
       console.error("Google sign in error:", err);
       setError(err?.message || "Failed to connect to Google. Please check your Google OAuth configuration.");

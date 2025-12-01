@@ -711,10 +711,12 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     if (quality === "auto") {
       // Use original video URL or API route
       const url = getVideoUrl();
-      setVideoSrc(url);
-      if (videoRef.current) {
-        videoRef.current.src = url;
-        videoRef.current.load();
+      if (url) {
+        setVideoSrc(url);
+        if (videoRef.current) {
+          videoRef.current.src = url;
+          videoRef.current.load();
+        }
       }
     } else {
       // Use quality-specific API route
@@ -1169,10 +1171,12 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                   setRetryCount(0);
                   // Try API route first, then fallback
                   const newUrl = retryCount === 0 ? getVideoUrl(false) : getVideoUrl(true);
-                  setVideoSrc(newUrl);
-                  if (videoRef.current) {
-                    videoRef.current.src = newUrl;
-                    videoRef.current.load();
+                  if (newUrl) {
+                    setVideoSrc(newUrl);
+                    if (videoRef.current) {
+                      videoRef.current.src = newUrl;
+                      videoRef.current.load();
+                    }
                   }
                 }}
                 className="rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-600"
