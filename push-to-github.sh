@@ -4,6 +4,19 @@
 
 set -e  # Exit on error
 
+# Cleanup function to ensure temporary files are removed even on interruption
+cleanup() {
+    if [ -n "$TEMP_ASKPASS" ] && [ -f "$TEMP_ASKPASS" ]; then
+        rm -f "$TEMP_ASKPASS"
+    fi
+    unset GITHUB_TOKEN
+    unset GIT_ASKPASS
+    unset GIT_TERMINAL_PROMPT
+}
+
+# Register cleanup function to run on exit or interruption
+trap cleanup EXIT INT TERM
+
 echo "🚀 Pushing to GitHub..."
 echo ""
 echo "GitHub requires a Personal Access Token (not password)"
@@ -49,11 +62,7 @@ export GIT_TERMINAL_PROMPT=0
 echo "📤 Pushing to GitHub..."
 git push origin main
 
-# Clean up: Remove temporary script and clear environment variables
-rm -f "$TEMP_ASKPASS"
-unset GITHUB_TOKEN
-unset GIT_ASKPASS
-unset GIT_TERMINAL_PROMPT
+# Cleanup is handled by trap function above
 
 if [ $? -eq 0 ]; then
     echo "✅ Successfully pushed to GitHub!"
