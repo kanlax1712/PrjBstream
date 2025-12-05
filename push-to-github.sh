@@ -1,6 +1,6 @@
 #!/bin/bash
 # Script to push to GitHub (Secure version)
-# This script uses git credential helper to securely store tokens
+# This script securely handles GitHub tokens without exposing them in shell history
 
 set -e  # Exit on error
 
@@ -16,6 +16,7 @@ echo "4. Copy the token"
 echo ""
 
 # Read token silently (won't appear in terminal or history)
+# -s flag prevents echo, so token won't be visible while typing
 read -sp "Enter your GitHub Personal Access Token: " GITHUB_TOKEN
 echo ""
 
@@ -27,32 +28,37 @@ fi
 # Set remote URL without token (use HTTPS)
 git remote set-url origin https://github.com/kanlax1712/bstream.git
 
-# Use git credential helper to store token securely
-# This stores the credential in git's credential store (not in shell history)
-echo "https://${GITHUB_TOKEN}@github.com" | git credential approve
+# Create a temporary credential helper script
+# This prevents token from appearing in process lists or command history
+TEMP_ASKPASS=$(mktemp)
+cat > "$TEMP_ASKPASS" <<EOF
+#!/bin/bash
+echo "$GITHUB_TOKEN"
+EOF
+chmod +x "$TEMP_ASKPASS"
 
-# Alternative: Use GIT_ASKPASS environment variable (more secure)
-# This prevents token from appearing in process lists
-export GIT_ASKPASS="echo"
+# Use GIT_ASKPASS to provide credentials securely
+# This method prevents token from appearing in:
+# - Shell history (.bash_history, .zsh_history)
+# - Process lists (ps command)
+# - System logs
+export GIT_ASKPASS="$TEMP_ASKPASS"
 export GIT_TERMINAL_PROMPT=0
 
 # Push using credential helper
 echo "📤 Pushing to GitHub..."
-GIT_TERMINAL_PROMPT=0 git push origin main
+git push origin main
 
-# Clear the token from memory immediately after use
+# Clean up: Remove temporary script and clear environment variables
+rm -f "$TEMP_ASKPASS"
 unset GITHUB_TOKEN
 unset GIT_ASKPASS
+unset GIT_TERMINAL_PROMPT
 
 if [ $? -eq 0 ]; then
     echo "✅ Successfully pushed to GitHub!"
     echo "🔗 View at: https://github.com/kanlax1712/bstream"
-    echo ""
-    echo "💡 Tip: Your token is stored in git credential helper."
-    echo "   To remove it later: git credential reject < https://github.com"
 else
     echo "❌ Push failed. Check your token."
-    # Clear credential on failure
-    echo "https://github.com" | git credential reject
     exit 1
 fi
