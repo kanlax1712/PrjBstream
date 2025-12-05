@@ -1341,7 +1341,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           )}
 
           {/* Control Bar */}
-          <div className="flex items-center gap-2 px-4 pb-4" onClick={(e) => e.stopPropagation()}>
+          <div className="relative flex items-center gap-2 px-4 pb-4" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -1398,7 +1398,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             </button>
 
             {/* Settings Menu */}
-            <div className="relative settings-menu-container z-50">
+            <div className="relative settings-menu-container z-50 ml-auto">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1410,38 +1410,42 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               >
                 <Settings className="size-5" />
               </button>
+            </div>
+          </div>
 
-              {showSettings && (
-                <>
-                  {/* Backdrop to close on outside click */}
-                  <div 
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowSettings(false)}
-                    style={{ pointerEvents: 'auto' }}
-                  />
-                  {/* Settings Panel - Overlay that doesn't affect layout */}
-                  <div 
-                    className={`absolute bottom-full right-0 mb-2 w-56 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
-                      isFullscreen ? 'z-[9999]' : 'z-50'
-                    }`}
-                    style={{
-                      position: 'absolute', // Overlay - doesn't push content
-                      maxHeight: isFullscreen ? 'calc(100vh - 100px)' : '500px', // Increased height to show more content
-                      minHeight: '200px', // Ensure minimum height for visibility
-                      scrollbarWidth: 'thin',
-                      scrollbarColor: 'rgba(255, 255, 255, 0.7) rgba(0, 0, 0, 0.3)',
-                      WebkitOverflowScrolling: 'touch',
-                      overflowY: 'auto',
-                      // Ensure it appears above content without affecting layout
-                      pointerEvents: 'auto',
-                    }}
-                    onScroll={(e) => e.stopPropagation()}
-                    onWheel={(e) => {
-                      e.stopPropagation();
-                      // Allow scrolling within the settings panel
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
+          {/* Settings Panel - Positioned relative to control bar, not button */}
+          {showSettings && (
+            <>
+              {/* Backdrop to close on outside click */}
+              <div 
+                className="fixed inset-0 z-40"
+                onClick={() => setShowSettings(false)}
+                style={{ pointerEvents: 'auto' }}
+              />
+              {/* Settings Panel - Positioned above the control bar */}
+              <div 
+                className={`absolute right-4 w-56 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
+                  isFullscreen ? 'z-[9999]' : 'z-50'
+                }`}
+                style={{
+                  position: 'absolute', // Overlay - doesn't push content
+                  bottom: 'calc(100% - 56px)', // Position above control bar (accounting for button height + padding)
+                  maxHeight: isFullscreen ? 'calc(100vh - 200px)' : 'min(400px, calc(100vh - 300px))', // Constrain to viewport
+                  minHeight: '200px', // Ensure minimum height for visibility
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: 'rgba(255, 255, 255, 0.7) rgba(0, 0, 0, 0.3)',
+                  WebkitOverflowScrolling: 'touch',
+                  overflowY: 'auto',
+                  // Ensure it appears above content without affecting layout
+                  pointerEvents: 'auto',
+                }}
+                onScroll={(e) => e.stopPropagation()}
+                onWheel={(e) => {
+                  e.stopPropagation();
+                  // Allow scrolling within the settings panel
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
                   {/* Quality Selector */}
                   <div className="mb-2.5">
                     <label className="mb-1.5 block text-xs font-semibold text-white/70">
@@ -1515,9 +1519,9 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                       <span>Picture in Picture</span>
                     </button>
                   </div>
-                  </div>
-                </>
-              )}
+                </div>
+              </>
+            )}
             </div>
           </div>
         </div>
