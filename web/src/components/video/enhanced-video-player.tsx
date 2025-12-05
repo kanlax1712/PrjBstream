@@ -1430,14 +1430,16 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                 style={{
                   position: 'absolute', // Overlay - doesn't push content
                   bottom: '72px', // Position above control bar (40px button + 16px padding + 16px gap)
-                  maxHeight: isFullscreen ? 'calc(100vh - 200px)' : 'min(400px, calc(100vh - 300px))', // Constrain to viewport
-                  minHeight: '200px', // Ensure minimum height for visibility
+                  maxHeight: isFullscreen ? 'calc(100vh - 200px)' : '280px', // Reduced height to ensure scrolling is needed
                   scrollbarWidth: 'thin',
-                  scrollbarColor: 'rgba(255, 255, 255, 0.7) rgba(0, 0, 0, 0.3)',
+                  scrollbarColor: 'rgba(255, 255, 255, 0.5) rgba(0, 0, 0, 0.2)',
                   WebkitOverflowScrolling: 'touch',
                   overflowY: 'auto',
+                  overflowX: 'hidden',
                   // Ensure it appears above content without affecting layout
                   pointerEvents: 'auto',
+                  // Force scrollbar to be visible when content overflows
+                  overscrollBehavior: 'contain',
                 }}
                 onScroll={(e) => e.stopPropagation()}
                 onWheel={(e) => {

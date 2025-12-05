@@ -321,14 +321,6 @@ video:-ms-fullscreen {
   background: rgba(255, 255, 255, 1);
 }
 
-/* Ensure settings panel is scrollable on all devices */
-@media (max-width: 768px) {
-  .settings-panel-scroll {
-    max-height: 500px !important;
-    min-height: 250px !important;
-    -webkit-overflow-scrolling: touch;
-  }
-}
 
 /* Fullscreen specific styles */
 .video-player-container:fullscreen .settings-panel-scroll,
