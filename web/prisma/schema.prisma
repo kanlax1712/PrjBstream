@@ -43,6 +43,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   viewEvents    ViewEvent[]
+  videoReactions VideoReaction[]
 }
 
 model Channel {
@@ -90,6 +91,7 @@ model Video {
   playlistItems PlaylistVideo[]
   views         ViewEvent[]
   qualities     VideoQuality[]
+  reactions     VideoReaction[]
 }
 
 model VideoQuality {
@@ -220,4 +222,24 @@ model LiveStream {
   @@index([channelId])
   @@index([status])
   @@index([visibility, status])
+}
+
+enum ReactionType {
+  LIKE
+  DISLIKE
+}
+
+model VideoReaction {
+  id        String       @id @default(cuid())
+  videoId   String
+  userId    String
+  type      ReactionType
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  video     Video        @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, userId])
+  @@index([videoId])
+  @@index([userId])
 }

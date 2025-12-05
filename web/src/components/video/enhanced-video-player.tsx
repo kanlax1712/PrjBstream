@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Settings, Download, PictureInPicture, Play, Pause, Maximize, Minimize, Volume2, VolumeX } from "lucide-react";
+import { Settings, Download, PictureInPicture, Play, Pause, Maximize, Minimize, Volume2, VolumeX, ThumbsUp, ThumbsDown } from "lucide-react";
 import { formatDuration, formatRelative } from "@/lib/format";
 import { SubscribeButton } from "@/components/video/subscribe-button";
 import { VideoAd } from "@/components/video/video-ad";
@@ -70,6 +70,11 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   // Relative time - client-side only to avoid hydration mismatch
   // Start with null, will be set after client-side hydration
   const [relativeTime, setRelativeTime] = useState<string | null>(null);
+  // Likes/Dislikes state
+  const [likeCount, setLikeCount] = useState(0);
+  const [dislikeCount, setDislikeCount] = useState(0);
+  const [userReaction, setUserReaction] = useState<"LIKE" | "DISLIKE" | null>(null);
+  const [isReacting, setIsReacting] = useState(false);
 
   // Mark as client-side after mount and calculate relative time
   useEffect(() => {
@@ -84,6 +89,59 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     
     return () => clearInterval(interval);
   }, [video.publishedAt]);
+
+  // Fetch reaction counts and user's reaction
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const fetchReactions = async () => {
+      try {
+        const response = await fetch(`/api/video/${video.id}/reaction`);
+        if (response.ok) {
+          const data = await response.json();
+          setLikeCount(data.likeCount || 0);
+          setDislikeCount(data.dislikeCount || 0);
+          setUserReaction(data.userReaction || null);
+        }
+      } catch (error) {
+        console.error("Error fetching reactions:", error);
+      }
+    };
+
+    fetchReactions();
+  }, [video.id, isClient]);
+
+  // Handle like/dislike toggle
+  const handleReaction = async (type: "LIKE" | "DISLIKE") => {
+    if (!session?.user) {
+      // Could show a login prompt here
+      return;
+    }
+
+    if (isReacting) return;
+
+    setIsReacting(true);
+    try {
+      const response = await fetch(`/api/video/${video.id}/reaction`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLikeCount(data.likeCount || 0);
+        setDislikeCount(data.dislikeCount || 0);
+        setUserReaction(data.userReaction || null);
+      }
+    } catch (error) {
+      console.error("Error toggling reaction:", error);
+    } finally {
+      setIsReacting(false);
+    }
+  };
 
   // Show ad when video has ads enabled (only on client)
   useEffect(() => {
@@ -920,9 +978,9 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   }, [isClient, video.videoUrl, video.id]);
 
   return (
-    <div className="flex flex-col gap-3 sm:gap-4">
+    <div className="flex flex-col gap-3 sm:gap-4 -mx-4 sm:mx-0">
       <div 
-        className="relative aspect-video overflow-hidden rounded-2xl border border-white/5 bg-black sm:rounded-3xl group video-player-container cursor-pointer"
+        className="relative aspect-video overflow-hidden rounded-none sm:rounded-2xl border-0 sm:border border-white/0 sm:border-white/5 bg-black group video-player-container cursor-pointer"
         onClick={handleVideoClick}
       >
         {/* Ad Overlay - Only show on client to avoid hydration mismatch */}
@@ -1472,6 +1530,37 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             </>
           )}
         </div>
+        
+        {/* Like/Dislike Buttons */}
+        <div className="mt-3 flex items-center gap-4">
+          <button
+            onClick={() => handleReaction("LIKE")}
+            disabled={isReacting || !session?.user}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+              userReaction === "LIKE"
+                ? "bg-cyan-500 text-white hover:bg-cyan-600"
+                : "bg-white/10 text-white/70 hover:bg-white/20"
+            } ${!session?.user ? "opacity-50 cursor-not-allowed" : ""}`}
+            type="button"
+          >
+            <ThumbsUp className="size-4" />
+            <span>{likeCount}</span>
+          </button>
+          <button
+            onClick={() => handleReaction("DISLIKE")}
+            disabled={isReacting || !session?.user}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+              userReaction === "DISLIKE"
+                ? "bg-rose-500 text-white hover:bg-rose-600"
+                : "bg-white/10 text-white/70 hover:bg-white/20"
+            } ${!session?.user ? "opacity-50 cursor-not-allowed" : ""}`}
+            type="button"
+          >
+            <ThumbsDown className="size-4" />
+            <span>{dislikeCount}</span>
+          </button>
+        </div>
+
         <p className="mt-3 text-white/70">{video.description}</p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-cyan-200">
           {video.tags
