@@ -1439,8 +1439,9 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                   isFullscreen ? 'z-[9999]' : 'z-50'
                 }`}
                 style={{
-                  position: 'absolute', // Overlay - doesn't push content
-                  bottom: '72px', // Position above control bar (40px button + 16px padding + 16px gap)
+                  position: isFullscreen ? 'fixed' : 'absolute', // Fixed in fullscreen for viewport positioning
+                  bottom: isFullscreen ? '80px' : '72px', // Position above control bar
+                  right: isFullscreen ? '20px' : '16px', // Right alignment
                   maxHeight: isFullscreen ? 'min(450px, calc(100vh - 150px))' : '280px', // Increased height in fullscreen to show more content
                   scrollbarWidth: 'thin',
                   scrollbarColor: 'rgba(255, 255, 255, 0.5) rgba(0, 0, 0, 0.2)',
