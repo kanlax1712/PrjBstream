@@ -1317,10 +1317,10 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           </div>
         )}
 
-        {/* Custom Controls Overlay - Always visible on mobile, show on hover on desktop */}
+        {/* Custom Controls Overlay - Always visible on mobile, show on hover on desktop - Ensure visible in fullscreen */}
         <div className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity ${
           !isPlaying || showSettings ? "opacity-100" : "opacity-0 md:group-hover:opacity-100 md:opacity-0"
-        }`}>
+        } ${isFullscreen ? 'z-[9997]' : ''}`}>
           {/* Progress Bar - Only show for non-YouTube videos (YouTube has its own controls) */}
           {!isYouTubeVideo() && (
             <div className="px-4 pb-2">
