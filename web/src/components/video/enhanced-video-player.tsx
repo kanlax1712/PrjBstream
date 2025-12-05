@@ -1418,11 +1418,11 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             <>
               {/* Backdrop to close on outside click */}
               <div 
-                className="fixed inset-0 z-40"
+                className={`fixed inset-0 ${isFullscreen ? 'z-[9998]' : 'z-40'}`}
                 onClick={() => setShowSettings(false)}
                 style={{ pointerEvents: 'auto' }}
               />
-              {/* Settings Panel - Positioned above the control bar */}
+              {/* Settings Panel - Positioned above the control bar - Same layout in both normal and fullscreen */}
               <div 
                 className={`absolute right-4 w-56 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
                   isFullscreen ? 'z-[9999]' : 'z-50'
