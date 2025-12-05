@@ -23,12 +23,19 @@ export async function GET(
     }
 
     // Get reaction counts
+    // Use enum values from Prisma
     const [likeCount, dislikeCount] = await Promise.all([
       prisma.videoReaction.count({
-        where: { videoId, type: "LIKE" },
+        where: { 
+          videoId, 
+          type: "LIKE" as const,
+        },
       }),
       prisma.videoReaction.count({
-        where: { videoId, type: "DISLIKE" },
+        where: { 
+          videoId, 
+          type: "DISLIKE" as const,
+        },
       }),
     ]);
 
@@ -51,10 +58,14 @@ export async function GET(
       dislikeCount,
       userReaction,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching reactions:", error);
+    // Return more detailed error in development
+    const errorMessage = process.env.NODE_ENV === "development" 
+      ? error?.message || "Failed to fetch reactions"
+      : "Failed to fetch reactions";
     return NextResponse.json(
-      { error: "Failed to fetch reactions" },
+      { error: errorMessage, details: process.env.NODE_ENV === "development" ? String(error) : undefined },
       { status: 500 }
     );
   }

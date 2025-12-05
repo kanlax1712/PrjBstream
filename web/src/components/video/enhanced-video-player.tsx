@@ -102,9 +102,22 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           setLikeCount(data.likeCount || 0);
           setDislikeCount(data.dislikeCount || 0);
           setUserReaction(data.userReaction || null);
+        } else {
+          // Log error but don't break the video player
+          const errorData = await response.json().catch(() => ({}));
+          console.warn("Failed to fetch reactions:", response.status, errorData);
+          // Set defaults so UI still works
+          setLikeCount(0);
+          setDislikeCount(0);
+          setUserReaction(null);
         }
       } catch (error) {
-        console.error("Error fetching reactions:", error);
+        // Network error or other issue - don't break video playback
+        console.warn("Error fetching reactions:", error);
+        // Set defaults so UI still works
+        setLikeCount(0);
+        setDislikeCount(0);
+        setUserReaction(null);
       }
     };
 
