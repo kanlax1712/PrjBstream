@@ -326,13 +326,18 @@ video:-ms-fullscreen {
 .video-player-container:fullscreen .settings-panel-scroll,
 .video-player-container:-webkit-full-screen .settings-panel-scroll,
 .video-player-container:-moz-full-screen .settings-panel-scroll {
-  /* Use same scrollable height as normal mode, but adapt to fullscreen viewport */
-  max-height: min(400px, calc(100vh - 150px)) !important;
+  /* Use increased height in fullscreen to show Quality and Speed options */
+  max-height: min(450px, calc(100vh - 150px)) !important;
   /* Ensure scrollbar is visible in fullscreen */
   overflow-y: auto !important;
   /* Same scrollbar styling */
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.7) rgba(0, 0, 0, 0.3);
+  /* Ensure panel is visible */
+  visibility: visible !important;
+  display: block !important;
+  /* Ensure all content is accessible */
+  overflow: visible;
 }
 
 /* Settings menu container scrollbar (backward compatibility) */
