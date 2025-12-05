@@ -1429,7 +1429,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                 }`}
                 style={{
                   position: 'absolute', // Overlay - doesn't push content
-                  bottom: 'calc(100% - 56px)', // Position above control bar (accounting for button height + padding)
+                  bottom: '72px', // Position above control bar (40px button + 16px padding + 16px gap)
                   maxHeight: isFullscreen ? 'calc(100vh - 200px)' : 'min(400px, calc(100vh - 300px))', // Constrain to viewport
                   minHeight: '200px', // Ensure minimum height for visibility
                   scrollbarWidth: 'thin',
@@ -1522,8 +1522,6 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                 </div>
               </>
             )}
-            </div>
-          </div>
         </div>
       </div>
 
