@@ -77,24 +77,32 @@ body {
   background: black;
   border: none;
   border-radius: 0;
+  /* Allow settings panel to overflow in fullscreen */
+  overflow: visible !important;
 }
 
 .video-player-container:-webkit-full-screen {
   background: black;
   border: none;
   border-radius: 0;
+  /* Allow settings panel to overflow in fullscreen */
+  overflow: visible !important;
 }
 
 .video-player-container:-moz-full-screen {
   background: black;
   border: none;
   border-radius: 0;
+  /* Allow settings panel to overflow in fullscreen */
+  overflow: visible !important;
 }
 
 .video-player-container:-ms-fullscreen {
   background: black;
   border: none;
   border-radius: 0;
+  /* Allow settings panel to overflow in fullscreen */
+  overflow: visible !important;
 }
 
 /* Video element fullscreen styles */
