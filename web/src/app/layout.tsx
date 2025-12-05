@@ -80,25 +80,32 @@ export default async function RootLayout({
           {`
             // Only register service worker in production (not in development)
             // This prevents issues with Next.js dev server and hot module replacement
-            if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-              window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                  .then((reg) => {
-                    console.log('Service Worker registered successfully', reg);
-                  })
-                  .catch((err) => {
-                    console.error('Service Worker registration failed:', err);
-                  });
-              });
-            } else if ('serviceWorker' in navigator && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-              // Unregister any existing service workers in development
-              navigator.serviceWorker.getRegistrations().then((registrations) => {
-                registrations.forEach((registration) => {
-                  registration.unregister().then(() => {
-                    console.log('Service Worker unregistered for development');
+            if ('serviceWorker' in navigator) {
+              const isDevelopment = window.location.hostname === 'localhost' || 
+                                   window.location.hostname === '127.0.0.1' ||
+                                   window.location.hostname.includes('localhost');
+              
+              if (isDevelopment) {
+                // Unregister any existing service workers in development
+                navigator.serviceWorker.getRegistrations().then((registrations) => {
+                  registrations.forEach((registration) => {
+                    registration.unregister().then(() => {
+                      console.log('Service Worker unregistered for development');
+                    });
                   });
                 });
-              });
+              } else {
+                // Register service worker in production only
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => {
+                      console.log('Service Worker registered successfully', reg);
+                    })
+                    .catch((err) => {
+                      console.error('Service Worker registration failed:', err);
+                    });
+                });
+              }
             }
           `}
         </Script>
