@@ -514,7 +514,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest(".settings-menu-container")) {
+      if (!target.closest(".settings-menu-container") && !target.closest(".settings-panel-scroll")) {
         setShowSettings(false);
       }
     };
@@ -522,6 +522,17 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showSettings]);
+
+  // Ensure settings panel scrolls to top when opened (especially in fullscreen)
+  useEffect(() => {
+    if (!showSettings) return;
+    
+    const panel = document.querySelector('.settings-panel-scroll') as HTMLElement;
+    if (panel) {
+      // Scroll to top to ensure Quality and Speed options are visible
+      panel.scrollTop = 0;
+    }
+  }, [showSettings, isFullscreen]);
 
   const togglePlayPause = () => {
     try {
