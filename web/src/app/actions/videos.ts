@@ -170,6 +170,7 @@ export async function deleteVideo(videoId: string) {
       include: {
         channel: {
           select: {
+            id: true,
             ownerId: true,
           },
         },

@@ -57,7 +57,6 @@ export function VideoUploadForm() {
     setState({ success: false, message: "" });
     setFileError("");
     setUploadProgress({ stage: "uploading", progress: 0, message: "Preparing upload..." });
-    setUploadedVideoId(null);
 
     const formData = new FormData(e.currentTarget);
     

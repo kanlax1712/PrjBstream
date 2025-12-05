@@ -9,7 +9,28 @@ export default async function LivePage() {
   const session = await auth();
 
   // Get actual live streams from database with error handling
-  let liveStreams = [];
+  let liveStreams: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    streamKey: string;
+    streamUrl: string;
+    shareUrl: string;
+    status: string;
+    visibility: string;
+    channelId: string;
+    startedAt: Date;
+    endedAt: Date | null;
+    viewerCount: number;
+    createdAt: Date;
+    updatedAt: Date;
+    channel: {
+      id: string;
+      name: string;
+      handle: string;
+      avatarUrl: string | null;
+    };
+  }> = [];
   try {
     liveStreams = await prisma.liveStream.findMany({
       where: {
