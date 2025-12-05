@@ -60,14 +60,23 @@ export GIT_TERMINAL_PROMPT=0
 
 # Push using credential helper
 echo "📤 Pushing to GitHub..."
+
+# Capture exit code immediately after git push
+# This must be done before any other commands to preserve the exit status
+# With set -e, we need to temporarily disable it to capture the exit code
+set +e
 git push origin main
+PUSH_EXIT_CODE=$?
+set -e
 
-# Cleanup is handled by trap function above
-
-if [ $? -eq 0 ]; then
+# Check the captured exit code (not $? which could be affected by other commands)
+if [ $PUSH_EXIT_CODE -eq 0 ]; then
     echo "✅ Successfully pushed to GitHub!"
     echo "🔗 View at: https://github.com/kanlax1712/bstream"
+    exit 0
 else
     echo "❌ Push failed. Check your token."
-    exit 1
+    exit $PUSH_EXIT_CODE
 fi
+
+# Cleanup is handled by trap function above (runs on exit)
