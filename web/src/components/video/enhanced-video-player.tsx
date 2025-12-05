@@ -1421,12 +1421,13 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                   />
                   {/* Settings Panel - Overlay that doesn't affect layout */}
                   <div 
-                    className={`absolute bottom-full right-0 mb-2 w-52 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
+                    className={`absolute bottom-full right-0 mb-2 w-56 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
                       isFullscreen ? 'z-[9999]' : 'z-50'
                     }`}
                     style={{
                       position: 'absolute', // Overlay - doesn't push content
-                      maxHeight: isFullscreen ? 'calc(100vh - 100px)' : '400px',
+                      maxHeight: isFullscreen ? 'calc(100vh - 100px)' : '500px', // Increased height to show more content
+                      minHeight: '200px', // Ensure minimum height for visibility
                       scrollbarWidth: 'thin',
                       scrollbarColor: 'rgba(255, 255, 255, 0.7) rgba(0, 0, 0, 0.3)',
                       WebkitOverflowScrolling: 'touch',
@@ -1442,7 +1443,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                     onClick={(e) => e.stopPropagation()}
                   >
                   {/* Quality Selector */}
-                  <div className="mb-3">
+                  <div className="mb-2.5">
                     <label className="mb-1.5 block text-xs font-semibold text-white/70">
                       Quality
                     </label>
@@ -1467,7 +1468,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                   </div>
 
                   {/* Playback Speed */}
-                  <div className="mb-3">
+                  <div className="mb-2.5">
                     <label className="mb-1.5 block text-xs font-semibold text-white/70">
                       Speed
                     </label>
@@ -1491,27 +1492,27 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                     </div>
                   </div>
 
-                  {/* Additional Options */}
-                  <div className="flex flex-col gap-1.5 border-t border-white/10 pt-2">
+                  {/* Additional Options - More visible */}
+                  <div className="flex flex-col gap-1.5 border-t border-white/10 pt-2 mt-2">
                     <button
                       onClick={() => {
                         handleDownload();
                         setShowSettings(false);
                       }}
-                      className="flex items-center gap-2 rounded-lg bg-white/10 px-2 py-1.5 text-xs font-medium text-white transition hover:bg-white/20"
+                      className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-medium text-white transition hover:bg-white/20 active:bg-white/30"
                     >
-                      <Download className="size-3.5" />
-                      Download
+                      <Download className="size-4" />
+                      <span>Download</span>
                     </button>
                     <button
                       onClick={() => {
                         handlePictureInPicture();
                         setShowSettings(false);
                       }}
-                      className="flex items-center gap-2 rounded-lg bg-white/10 px-2 py-1.5 text-xs font-medium text-white transition hover:bg-white/20"
+                      className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-medium text-white transition hover:bg-white/20 active:bg-white/30"
                     >
-                      <PictureInPicture className="size-3.5" />
-                      Picture in Picture
+                      <PictureInPicture className="size-4" />
+                      <span>Picture in Picture</span>
                     </button>
                   </div>
                   </div>
