@@ -1430,7 +1430,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                 style={{
                   position: 'absolute', // Overlay - doesn't push content
                   bottom: '72px', // Position above control bar (40px button + 16px padding + 16px gap)
-                  maxHeight: isFullscreen ? 'calc(100vh - 200px)' : '280px', // Reduced height to ensure scrolling is needed
+                  maxHeight: isFullscreen ? 'min(400px, calc(100vh - 150px))' : '280px', // Reduced height to ensure scrolling is needed in both modes
                   scrollbarWidth: 'thin',
                   scrollbarColor: 'rgba(255, 255, 255, 0.5) rgba(0, 0, 0, 0.2)',
                   WebkitOverflowScrolling: 'touch',

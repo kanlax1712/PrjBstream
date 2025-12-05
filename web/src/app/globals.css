@@ -322,11 +322,17 @@ video:-ms-fullscreen {
 }
 
 
-/* Fullscreen specific styles */
+/* Fullscreen specific styles - Ensure scrollable with same behavior */
 .video-player-container:fullscreen .settings-panel-scroll,
 .video-player-container:-webkit-full-screen .settings-panel-scroll,
 .video-player-container:-moz-full-screen .settings-panel-scroll {
-  max-height: calc(100vh - 100px) !important;
+  /* Use same scrollable height as normal mode, but adapt to fullscreen viewport */
+  max-height: min(400px, calc(100vh - 150px)) !important;
+  /* Ensure scrollbar is visible in fullscreen */
+  overflow-y: auto !important;
+  /* Same scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.7) rgba(0, 0, 0, 0.3);
 }
 
 /* Settings menu container scrollbar (backward compatibility) */
