@@ -38,8 +38,18 @@ if [ -z "$GITHUB_TOKEN" ]; then
     exit 1
 fi
 
+# Determine which remote to use (check if prjbstream exists, otherwise use origin)
+if git remote get-url prjbstream >/dev/null 2>&1; then
+    REMOTE_NAME="prjbstream"
+    REMOTE_URL="https://github.com/kanlax1712/PrjBstream.git"
+else
+    REMOTE_NAME="origin"
+    REMOTE_URL="https://github.com/kanlax1712/bstream.git"
+fi
+
 # Set remote URL without token (use HTTPS)
-git remote set-url origin https://github.com/kanlax1712/bstream.git
+# This removes any embedded tokens that might be expired
+git remote set-url "$REMOTE_NAME" "$REMOTE_URL"
 
 # Create a temporary credential helper script
 # This prevents token from appearing in process lists or command history
@@ -59,23 +69,30 @@ export GIT_ASKPASS="$TEMP_ASKPASS"
 export GIT_TERMINAL_PROMPT=0
 
 # Push using credential helper
-echo "📤 Pushing to GitHub..."
+echo "📤 Pushing to GitHub (remote: $REMOTE_NAME)..."
 
 # Capture exit code immediately after git push
 # This must be done before any other commands to preserve the exit status
 # With set -e, we need to temporarily disable it to capture the exit code
 set +e
-git push origin main
+git push "$REMOTE_NAME" main
 PUSH_EXIT_CODE=$?
 set -e
 
 # Check the captured exit code (not $? which could be affected by other commands)
 if [ $PUSH_EXIT_CODE -eq 0 ]; then
     echo "✅ Successfully pushed to GitHub!"
-    echo "🔗 View at: https://github.com/kanlax1712/bstream"
+    echo "🔗 View at: $REMOTE_URL"
     exit 0
 else
-    echo "❌ Push failed. Check your token."
+    echo "❌ Push failed. Check your token and permissions."
+    echo "   Remote: $REMOTE_NAME"
+    echo "   URL: $REMOTE_URL"
+    echo ""
+    echo "💡 Troubleshooting:"
+    echo "   1. Verify your token has 'repo' scope"
+    echo "   2. Check if token is expired"
+    echo "   3. Ensure you have push access to the repository"
     exit $PUSH_EXIT_CODE
 fi
 
