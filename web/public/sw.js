@@ -43,16 +43,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  // CRITICAL: Skip Next.js internal files - let browser handle them directly
+  // These files must be served fresh from the dev server
+  if (url.pathname.startsWith('/_next/') || 
+      url.pathname.startsWith('/_next-static/') ||
+      url.pathname.includes('/_next/static/') ||
+      url.pathname.includes('/_next/image') ||
+      url.pathname.includes('/_next/webpack-hmr')) {
+    // Let the browser handle Next.js internal files normally
+    // Don't intercept these requests at all
+    return;
+  }
+  
   // Skip non-GET requests (POST, PUT, DELETE, etc.)
   // Cache API only supports GET requests
   if (request.method !== 'GET') {
     // Let the browser handle non-GET requests normally
     return;
-  }
-  
-  // Only handle same-origin GET requests - skip POST/PUT/DELETE
-  if (request.method !== 'GET') {
-    return; // Skip non-GET requests entirely
   }
   
   event.respondWith(
