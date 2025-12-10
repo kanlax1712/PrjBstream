@@ -13,18 +13,36 @@ export function YoutubeImportButton() {
 
   // Auto-fetch videos if user just authenticated via Google OAuth
   useEffect(() => {
+    // Wait for session to be ready
+    if (status === "loading") {
+      return;
+    }
+    
     if (status === "authenticated" && session?.user) {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("youtube") === "true") {
-        // Add a small delay to ensure OAuth tokens are saved to database
+        console.log("🎬 YouTube import detected, fetching videos...");
+        // Add a delay to ensure OAuth tokens are saved to database
+        // Increased delay to 2 seconds to ensure account is saved
         const timer = setTimeout(() => {
+          console.log("🔄 Starting video fetch...");
           fetchVideos();
           // Clean up URL parameter
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete("youtube");
           window.history.replaceState({}, "", newUrl.toString());
-        }, 500);
+        }, 2000); // Increased to 2 seconds
         return () => clearTimeout(timer);
+      }
+    } else if (status === "unauthenticated") {
+      // If not authenticated but youtube param exists, redirect to login
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("youtube") === "true") {
+        console.log("⚠️ Not authenticated, redirecting to Google OAuth...");
+        signIn("google", {
+          callbackUrl: "/studio?youtube=true",
+          redirect: true,
+        });
       }
     }
   }, [status, session]);
@@ -34,25 +52,44 @@ export function YoutubeImportButton() {
     setError("");
     
     try {
-      const response = await fetch("/api/youtube/videos");
+      console.log("📡 Fetching YouTube videos from API...");
+      const response = await fetch("/api/youtube/videos", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
       const data = await response.json();
+      
+      console.log("📥 YouTube API response:", {
+        ok: response.ok,
+        status: response.status,
+        success: data.success,
+        videoCount: data.videos?.length || 0,
+        message: data.message,
+      });
       
       if (response.ok && data.success) {
         // Videos fetched successfully, show selector
+        console.log("✅ Videos fetched successfully, showing selector");
         setShowSelector(true);
+        setIsLoading(false);
       } else if (response.status === 401) {
         // Need to authenticate with Google
+        console.log("⚠️ Authentication required, redirecting to Google...");
         setError("Authentication required. Redirecting to Google...");
         await signIn("google", {
           callbackUrl: "/studio?youtube=true",
           redirect: true,
         });
       } else {
-        setError(data.message || "Failed to fetch YouTube videos. Please try again.");
+        const errorMsg = data.message || "Failed to fetch YouTube videos. Please try again.";
+        console.error("❌ YouTube fetch failed:", errorMsg);
+        setError(errorMsg);
         setIsLoading(false);
       }
     } catch (err) {
-      console.error("YouTube fetch error:", err);
+      console.error("❌ YouTube fetch error:", err);
       setError("Failed to connect to YouTube. Please try again.");
       setIsLoading(false);
     }
