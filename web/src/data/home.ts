@@ -61,12 +61,14 @@ export async function getHomeFeed() {
           videos: {
             take: 4, // Only first 4 videos per playlist
             select: {
+              order: true,
               video: {
                 select: {
                   id: true,
                   title: true,
                   thumbnailUrl: true,
                   duration: true,
+                  videoUrl: true,
                 },
               },
             },
