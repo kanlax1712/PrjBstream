@@ -348,6 +348,68 @@ video:-ms-fullscreen {
   overflow: visible;
 }
 
+/* Liquid Fill Animation for Login Button */
+.login-button-liquid {
+  position: relative;
+  isolation: isolate;
+}
+
+.login-button-liquid::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.9) 0%, rgba(8, 145, 178, 0.9) 50%, rgba(14, 116, 144, 0.9) 100%);
+  border-radius: inherit;
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+  /* Add wave effect */
+  background-image: 
+    linear-gradient(135deg, rgba(6, 182, 212, 0.9) 0%, rgba(8, 145, 178, 0.9) 50%, rgba(14, 116, 144, 0.9) 100%),
+    radial-gradient(ellipse at bottom, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+  background-size: 100% 100%, 200% 200%;
+  background-position: center, center bottom;
+}
+
+.login-button-liquid:hover::before {
+  height: 100%;
+  animation: liquidWave 0.6s ease-out;
+}
+
+.login-button-liquid:active::before {
+  height: 100%;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 1) 0%, rgba(8, 145, 178, 1) 50%, rgba(14, 116, 144, 1) 100%);
+}
+
+.login-button-liquid:hover {
+  border-color: rgba(6, 182, 212, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+.login-button-liquid:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(6, 182, 212, 0.2);
+}
+
+/* Wave animation for liquid effect */
+@keyframes liquidWave {
+  0% {
+    background-position: center, center bottom;
+    background-size: 100% 100%, 200% 200%;
+  }
+  50% {
+    background-position: center, center 30%;
+    background-size: 100% 100%, 180% 180%;
+  }
+  100% {
+    background-position: center, center bottom;
+    background-size: 100% 100%, 200% 200%;
+  }
+}
+
 /* Settings menu container scrollbar (backward compatibility) */
 .settings-menu-container > div {
   /* Firefox */

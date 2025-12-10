@@ -22,9 +22,9 @@ export function UserMenu({ session, channel }: Props) {
     return (
       <button
         onClick={() => signIn()}
-        className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
+        className="login-button-liquid relative overflow-hidden rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-all duration-300"
       >
-        Login
+        <span className="relative z-10">Login</span>
       </button>
     );
   }
