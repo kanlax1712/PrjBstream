@@ -7,6 +7,52 @@ import { YoutubeImportButton } from "./youtube-import-button";
 import { formatDuration } from "@/lib/format";
 import { Upload, Pencil, FileVideo, Loader2, X } from "lucide-react";
 
+// Helper function to extract thumbnail from video file automatically
+async function extractThumbnailFromVideo(videoFile: File): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    const canvas = document.createElement("canvas");
+    const url = URL.createObjectURL(videoFile);
+    
+    video.src = url;
+    video.currentTime = 1; // Extract frame at 1 second
+    
+    video.addEventListener("loadedmetadata", () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    });
+    
+    video.addEventListener("seeked", () => {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        canvas.toBlob(
+          (blob) => {
+            URL.revokeObjectURL(url);
+            resolve(blob);
+          },
+          "image/jpeg",
+          0.9
+        );
+      } else {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      }
+    });
+    
+    video.addEventListener("error", () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    });
+    
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    }, 5000);
+  });
+}
+
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
 type UploadState = {
@@ -96,9 +142,20 @@ export function VideoUploadForm() {
     }
     formData.set("duration", durationValue.toString());
     
-    // Add selected thumbnail if available
+    // Add selected thumbnail if available, or auto-extract from video
     if (thumbnailBlob) {
       formData.append("thumbnailFile", thumbnailBlob, "thumbnail.jpg");
+    } else if (videoFile) {
+      // Auto-extract thumbnail from video if none selected
+      try {
+        const autoThumbnail = await extractThumbnailFromVideo(videoFile);
+        if (autoThumbnail) {
+          formData.append("thumbnailFile", autoThumbnail, "thumbnail.jpg");
+        }
+      } catch (err) {
+        console.warn("Failed to auto-extract thumbnail:", err);
+        // Continue without thumbnail - server will create placeholder
+      }
     }
     
     // Add video quality preference
