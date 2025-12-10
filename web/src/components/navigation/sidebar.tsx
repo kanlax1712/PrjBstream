@@ -79,10 +79,12 @@ export function Sidebar({ session, channel }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="nav-link-liquid flex items-center gap-3 rounded-xl px-3 py-2 text-white/70 transition"
+              className={`flex items-center gap-3 rounded-xl px-3 py-2 text-white/70 transition ${
+                item.href === "/" ? "channel-button-ripple" : "nav-link-liquid"
+              }`}
             >
-              <Icon className="size-4 relative z-10" />
-              <span className="relative z-10">{item.label}</span>
+              <Icon className={`size-4 ${item.href === "/" ? "" : "relative z-10"}`} />
+              <span className={item.href === "/" ? "" : "relative z-10"}>{item.label}</span>
             </Link>
           );
         })}

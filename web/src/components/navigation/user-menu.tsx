@@ -74,7 +74,7 @@ export function UserMenu({ session, channel }: Props) {
               <span className="relative z-10">Creator Studio</span>
             </Link>
             <button
-              className="rounded-xl px-3 py-2 text-left text-rose-300 transition hover:bg-white/5"
+              className="channel-button-ripple rounded-xl px-3 py-2 text-left text-rose-300 transition hover:bg-white/5"
               onClick={async () => {
                 setOpen(false);
                 try {
