@@ -75,7 +75,7 @@ export function CommentList({ comments, videoId, session }: Props) {
           <button
             type="submit"
             disabled={isSubmitting || !content.trim()}
-            className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="channel-button-ripple rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? "Posting..." : "Post comment"}
           </button>

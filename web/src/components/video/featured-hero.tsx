@@ -58,14 +58,14 @@ export function FeaturedHero({ video }: Props) {
           <div className="flex flex-wrap gap-3 pt-4">
             <Link
               href={`/video/${video.id}`}
-              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
+              className="channel-button-ripple inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
             >
               <Play className="size-4" />
               Watch now
             </Link>
             <Link
               href="/studio"
-              className="inline-flex items-center rounded-full border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              className="channel-button-ripple inline-flex items-center rounded-full border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
             >
               Go live
             </Link>
