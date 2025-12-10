@@ -5,6 +5,119 @@ import { prisma } from "@/lib/prisma";
 
 const QUALITIES = ["480p", "720p", "1080p", "1440p", "2160p", "original"];
 
+// Handle HEAD requests for quality availability checks
+export async function HEAD(
+  request: NextRequest,
+  { params }: { params: Promise<{ videoId: string; quality: string }> }
+) {
+  try {
+    const { videoId, quality } = await params;
+
+    if (!QUALITIES.includes(quality)) {
+      return new NextResponse(null, { status: 400 });
+    }
+
+    // Get video with quality versions
+    const video = await prisma.video.findUnique({
+      where: { id: videoId },
+      include: {
+        qualities: true,
+      },
+    });
+
+    if (!video) {
+      return new NextResponse(null, { status: 404 });
+    }
+
+    // Find the requested quality version
+    let videoQuality = video.qualities.find((q) => q.quality === quality);
+
+    // If quality not found, try to find original or fallback
+    if (!videoQuality) {
+      if (quality === "original") {
+        // Use original video URL
+        const videoPath = path.join(process.cwd(), "public", video.videoUrl);
+        const fileExists = await fs.access(videoPath).then(() => true).catch(() => false);
+        
+        if (fileExists) {
+          const stats = await fs.stat(videoPath);
+          return new NextResponse(null, {
+            status: 200,
+            headers: {
+              "Content-Type": "video/mp4",
+              "Content-Length": stats.size.toString(),
+              "Accept-Ranges": "bytes",
+            },
+          });
+        }
+      }
+      
+      // Fallback to closest available quality
+      const qualityOrder = ["2160p", "1440p", "1080p", "720p", "480p", "original"];
+      const qualityIndex = qualityOrder.indexOf(quality);
+      
+      for (let i = qualityIndex; i < qualityOrder.length; i++) {
+        const fallbackQuality = video.qualities.find(
+          (q) => q.quality === qualityOrder[i]
+        );
+        if (fallbackQuality) {
+          videoQuality = fallbackQuality;
+          break;
+        }
+      }
+      
+      // If still no quality found, use original
+      if (!videoQuality) {
+        const videoPath = path.join(process.cwd(), "public", video.videoUrl);
+        const fileExists = await fs.access(videoPath).then(() => true).catch(() => false);
+        
+        if (fileExists) {
+          const stats = await fs.stat(videoPath);
+          return new NextResponse(null, {
+            status: 200,
+            headers: {
+              "Content-Type": "video/mp4",
+              "Content-Length": stats.size.toString(),
+              "Accept-Ranges": "bytes",
+            },
+          });
+        }
+      }
+    }
+
+    if (!videoQuality) {
+      return new NextResponse(null, { status: 404 });
+    }
+
+    // Check if quality is ready
+    if (videoQuality.status !== "ready") {
+      return new NextResponse(null, { status: 202 }); // Accepted but processing
+    }
+
+    // Check if file exists
+    const videoPath = path.join(process.cwd(), "public", videoQuality.videoUrl);
+    const fileExists = await fs.access(videoPath).then(() => true).catch(() => false);
+
+    if (!fileExists) {
+      return new NextResponse(null, { status: 404 });
+    }
+
+    const stats = await fs.stat(videoPath);
+
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        "Content-Type": "video/mp4",
+        "Content-Length": stats.size.toString(),
+        "Accept-Ranges": "bytes",
+      },
+    });
+  } catch (error) {
+    console.error("Error checking video quality:", error);
+    return new NextResponse(null, { status: 500 });
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ videoId: string; quality: string }> }
