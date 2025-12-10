@@ -295,11 +295,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   }, [video.id]);
 
   // YouTube iframe event handling removed - all videos use regular video element
-  useEffect(() => {
-    // All videos use regular video element now
-    return;
-
-    const handleYouTubeMessage = (event: MessageEvent) => {
+  // No YouTube message listeners needed
       try {
         // Only accept messages from YouTube
         if (event.origin !== "https://www.youtube.com") return;
@@ -641,48 +637,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
       e.stopPropagation(); // Prevent video click handler
     }
     
-    // Handle YouTube videos - YouTube iframe handles fullscreen via allowFullScreen attribute
-    if (isYouTubeVideo()) {
-      try {
-        const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
-        if (iframe) {
-          // For YouTube, we can request fullscreen on the container or let YouTube handle it
-          // YouTube's native fullscreen button in the iframe will work
-          // But we can also request fullscreen on the container
-          const container = iframe.closest(".video-player-container") as HTMLElement;
-          if (container) {
-            if (document.fullscreenElement) {
-              // Exit fullscreen
-              if (document.exitFullscreen) {
-                await document.exitFullscreen();
-              } else if ((document as any).webkitExitFullscreen) {
-                await (document as any).webkitExitFullscreen();
-              } else if ((document as any).mozCancelFullScreen) {
-                await (document as any).mozCancelFullScreen();
-              } else if ((document as any).msExitFullscreen) {
-                await (document as any).msExitFullscreen();
-              }
-              setIsFullscreen(false);
-            } else {
-              // Enter fullscreen on container
-              if (container.requestFullscreen) {
-                await container.requestFullscreen();
-              } else if ((container as any).webkitRequestFullscreen) {
-                await (container as any).webkitRequestFullscreen();
-              } else if ((container as any).mozRequestFullScreen) {
-                await (container as any).mozRequestFullScreen();
-              } else if ((container as any).msRequestFullscreen) {
-                await (container as any).msRequestFullscreen();
-              }
-              setIsFullscreen(true);
-            }
-          }
-        }
-      } catch (err) {
-        console.error("YouTube fullscreen error:", err);
-      }
-      return;
-    }
+    // Handle fullscreen for regular video element
     
     // Handle regular videos
     const videoElement = videoRef.current;
@@ -860,8 +815,8 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           </div>
         )}
         
-        {/* Regular video element (for non-YouTube videos only) */}
-        {!isYouTubeVideo() && videoSrc && !videoSrc.includes("youtube.com") && !videoSrc.includes("youtu.be") && (
+        {/* Video element - all videos are now regular video files */}
+        {videoSrc && !videoSrc.includes("youtube.com") && !videoSrc.includes("youtu.be") && (
           <video
           ref={videoRef}
           src={videoSrc}
@@ -917,10 +872,10 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             if (retryCount === 0) {
               let fallbackUrl: string;
               
-              // Never use YouTube URLs as fallback - they must use iframe
+              // YouTube URLs should be downloaded and stored locally during import
               if (video.videoUrl.includes("youtube.com") || video.videoUrl.includes("youtu.be")) {
-                console.error("Cannot use YouTube URL as video source - must use iframe");
-                setVideoError("YouTube videos must be played via iframe. Please refresh the page.");
+                console.error("YouTube URL detected - video should have been downloaded during import");
+                setVideoError("This video appears to be from YouTube but wasn't downloaded. Please re-import the video.");
                 setIsLoading(false);
                 return;
               }
