@@ -219,12 +219,8 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     return url;
   };
 
-  // Initialize video source - use API route for non-YouTube videos
+  // Initialize video source - all videos use API route
   const [videoSrc, setVideoSrc] = useState<string>(() => {
-    // YouTube videos use iframe, not video element - don't set videoSrc
-    if (isYouTubeVideo()) {
-      return ""; // Empty string - will use iframe instead
-    }
     // Always use API route which handles both external and local videos
     // This avoids CORS issues and URL safety checks
     return `/api/video/${video.id}/stream`;
@@ -298,9 +294,10 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     return () => clearTimeout(timer);
   }, [video.id]);
 
-  // Listen for YouTube iframe events with comprehensive error handling
+  // YouTube iframe event handling removed - all videos use regular video element
   useEffect(() => {
-    if (!isYouTubeVideo()) return;
+    // All videos use regular video element now
+    return;
 
     const handleYouTubeMessage = (event: MessageEvent) => {
       try {
@@ -546,31 +543,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     e.stopPropagation(); // Prevent video click handler
     const vol = parseFloat(e.target.value);
     
-    // Handle YouTube videos
-    if (isYouTubeVideo() && typeof window !== "undefined" && youtubeIframeReady) {
-      try {
-        const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
-        if (iframe && iframe.contentWindow) {
-          // YouTube volume is 0-100, our slider is 0-1
-          const youtubeVolume = Math.round(vol * 100);
-          try {
-            iframe.contentWindow.postMessage(
-              JSON.stringify({ event: "command", func: "setVolume", args: [youtubeVolume] }),
-              "https://www.youtube.com"
-            );
-            setVolume(vol);
-            setIsMuted(vol === 0);
-          } catch (postError) {
-            console.debug("YouTube volume postMessage failed:", postError);
-          }
-        }
-      } catch (error) {
-        console.error("Error setting YouTube volume:", error);
-      }
-      return;
-    }
-    
-    // Handle regular videos
+    // Handle video volume
     if (videoRef.current) {
       videoRef.current.volume = vol;
       setVolume(vol);
@@ -593,25 +566,6 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
       }
       setIsMuted(false);
       
-      // Handle YouTube videos
-      if (isYouTubeVideo() && typeof window !== "undefined" && youtubeIframeReady) {
-        try {
-          const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
-          if (iframe && iframe.contentWindow) {
-            const youtubeVolume = Math.round(newVolume * 100);
-            try {
-              iframe.contentWindow.postMessage(
-                JSON.stringify({ event: "command", func: "setVolume", args: [youtubeVolume] }),
-                "https://www.youtube.com"
-              );
-            } catch (postError) {
-              console.debug("YouTube unmute postMessage failed:", postError);
-            }
-          }
-        } catch (error) {
-          console.error("Error unmuting YouTube video:", error);
-        }
-      }
     } else {
       // Mute
       if (videoRef.current) {
@@ -620,24 +574,6 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
       }
       setIsMuted(true);
       
-      // Handle YouTube videos
-      if (isYouTubeVideo() && typeof window !== "undefined" && youtubeIframeReady) {
-        try {
-          const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
-          if (iframe && iframe.contentWindow) {
-            try {
-              iframe.contentWindow.postMessage(
-                JSON.stringify({ event: "command", func: "setVolume", args: [0] }),
-                "https://www.youtube.com"
-              );
-            } catch (postError) {
-              console.debug("YouTube mute postMessage failed:", postError);
-            }
-          }
-        } catch (error) {
-          console.error("Error muting YouTube video:", error);
-        }
-      }
     }
   };
 
@@ -794,18 +730,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     }
   };
 
-  // YouTube embed URL - only generate on client to avoid hydration mismatch
-  const [youtubeEmbedUrl, setYoutubeEmbedUrl] = useState<string | null>(null);
-  const [youtubeIframeReady, setYoutubeIframeReady] = useState(false);
-  
-  // Generate YouTube embed URL only on client side
-  useEffect(() => {
-    if (isClient && isYouTubeVideo()) {
-      const embedUrl = getYouTubeEmbedUrl(false);
-      setYoutubeEmbedUrl(embedUrl);
-      setYoutubeIframeReady(false); // Reset ready state when URL changes
-    }
-  }, [isClient, video.videoUrl, video.id]);
+  // YouTube iframe handling removed - all videos are now stored locally
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4 -mx-4 sm:mx-0">
@@ -905,13 +830,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               // Get thumbnail URL - handle YouTube, regular videos, and defaults
               let thumbnailUrl: string | null = null;
               
-              if (isYouTubeVideo()) {
-                // For YouTube, use YouTube thumbnail API
-                const videoId = getYouTubeVideoId();
-                if (videoId) {
-                  thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-                }
-              } else if (video.thumbnailUrl && 
+              if (video.thumbnailUrl && 
                 !video.thumbnailUrl.includes("placeholder") && 
                 !video.thumbnailUrl.includes("No Thumbnail") &&
                 !video.thumbnailUrl.startsWith("data:")) {
