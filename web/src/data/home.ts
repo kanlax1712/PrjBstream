@@ -38,7 +38,12 @@ export async function getHomeFeed() {
           videoUrl: true,
           tags: true,
           channel: {
-            select: { id: true, name: true, handle: true, avatarUrl: true },
+            select: { 
+              id: true, 
+              name: true, 
+              handle: true, 
+              avatarUrl: true 
+            },
           },
           // Use _count instead of loading all relations
           _count: {
@@ -49,6 +54,9 @@ export async function getHomeFeed() {
           },
         },
         take: 20, // Reduced from 100 for faster loading
+      }).then(videos => {
+        // Filter out videos with incomplete channel data
+        return videos.filter(video => video.channel && video.channel.id);
       }),
       // Optimized playlist query - limit and only fetch essentials
       prisma.playlist.findMany({
