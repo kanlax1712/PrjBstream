@@ -68,10 +68,10 @@ export function UserMenu({ session, channel }: Props) {
           <div className="flex flex-col gap-1">
             <Link
               href="/studio"
-              className="rounded-xl px-3 py-2 text-white/80 transition hover:bg-white/5"
+              className="nav-link-liquid rounded-xl px-3 py-2 text-white/80 transition"
               onClick={() => setOpen(false)}
             >
-              Creator Studio
+              <span className="relative z-10">Creator Studio</span>
             </Link>
             <button
               className="rounded-xl px-3 py-2 text-left text-rose-300 transition hover:bg-white/5"

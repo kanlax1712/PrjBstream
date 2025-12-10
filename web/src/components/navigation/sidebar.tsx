@@ -79,10 +79,10 @@ export function Sidebar({ session, channel }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 rounded-xl px-3 py-2 text-white/70 transition hover:bg-white/5 hover:text-white"
+              className="nav-link-liquid flex items-center gap-3 rounded-xl px-3 py-2 text-white/70 transition"
             >
-              <Icon className="size-4" />
-              {item.label}
+              <Icon className="size-4 relative z-10" />
+              <span className="relative z-10">{item.label}</span>
             </Link>
           );
         })}
@@ -93,9 +93,9 @@ export function Sidebar({ session, channel }: SidebarProps) {
           <p>Sign in to sync your playlists and creator studio.</p>
           <Link
             href="/login"
-            className="mt-3 inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-950"
+            className="login-button-liquid mt-3 inline-flex items-center justify-center rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-all duration-300"
           >
-            Login
+            <span className="relative z-10">Login</span>
           </Link>
         </div>
       )}

@@ -44,10 +44,10 @@ export function TopNav({ session, channel }: TopNavProps) {
           {session?.user && (
             <Link
               href="/studio"
-              className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20 sm:inline-flex"
+              className="nav-link-liquid hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white transition sm:inline-flex"
             >
-              <Upload className="size-4" />
-              <span className="hidden lg:inline">Upload</span>
+              <Upload className="size-4 relative z-10" />
+              <span className="hidden lg:inline relative z-10">Upload</span>
             </Link>
           )}
           <UserMenu session={session} channel={channel} />

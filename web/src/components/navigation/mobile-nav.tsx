@@ -35,28 +35,28 @@ export function MobileNav({ session }: MobileNavProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-1 rounded-xl px-4 py-2 text-xs transition ${
+              className={`nav-link-liquid flex flex-col items-center gap-1 rounded-xl px-4 py-2 text-xs transition ${
                 isActive
                   ? "text-cyan-400"
                   : "text-white/60"
               }`}
             >
-              <Icon className="size-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <Icon className="size-5 relative z-10" />
+              <span className="text-[10px] font-medium relative z-10">{item.label}</span>
             </Link>
           );
         })}
         {session?.user && (
           <Link
             href="/profile"
-            className={`flex flex-col items-center gap-1 rounded-xl px-4 py-2 text-xs transition ${
+            className={`nav-link-liquid flex flex-col items-center gap-1 rounded-xl px-4 py-2 text-xs transition ${
               pathname === "/profile"
                 ? "text-cyan-400"
                 : "text-white/60"
             }`}
           >
-            <User className="size-5" />
-            <span className="text-[10px] font-medium">Profile</span>
+            <User className="size-5 relative z-10" />
+            <span className="text-[10px] font-medium relative z-10">Profile</span>
           </Link>
         )}
       </div>

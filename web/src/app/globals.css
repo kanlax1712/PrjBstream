@@ -409,6 +409,48 @@ video:-ms-fullscreen {
   }
 }
 
+/* Liquid Fill Animation for Navigation Links */
+.nav-link-liquid {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.nav-link-liquid::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  border-radius: inherit;
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+  /* Liquid fill with wave effect */
+  background-image: 
+    linear-gradient(135deg, rgba(6, 182, 212, 0.9) 0%, rgba(8, 145, 178, 0.9) 50%, rgba(14, 116, 144, 0.9) 100%),
+    radial-gradient(ellipse at bottom, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+  background-size: 100% 100%, 200% 200%;
+  background-position: center, center bottom;
+}
+
+.nav-link-liquid:hover::before {
+  height: 100%;
+  animation: liquidWave 0.6s ease-out;
+}
+
+.nav-link-liquid:hover {
+  color: white !important;
+  border-color: rgba(6, 182, 212, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+}
+
+.nav-link-liquid:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(6, 182, 212, 0.15);
+}
+
 /* Settings menu container scrollbar (backward compatibility) */
 .settings-menu-container > div {
   /* Firefox */
