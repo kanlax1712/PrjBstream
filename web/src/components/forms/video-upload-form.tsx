@@ -532,7 +532,7 @@ export function VideoUploadForm() {
       <button
         type="submit"
         disabled={isUploading || !!fileError}
-        className="w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="channel-button-ripple w-full rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isUploading ? "Processing..." : "Publish video"}
       </button>

@@ -99,7 +99,7 @@ export function CreateChannelForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-full bg-cyan-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-60"
+        className="channel-button-ripple w-full rounded-full bg-cyan-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isSubmitting ? "Creating..." : "Create Channel"}
       </button>
