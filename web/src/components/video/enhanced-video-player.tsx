@@ -416,7 +416,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     if (
       target.closest("button") ||
       target.closest("input") ||
-      target.closest(".settings-menu-container") ||
+      target.closest(".settings-menu-container")
     ) {
       return;
     }
