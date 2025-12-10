@@ -59,6 +59,7 @@ export function VideoCard({ video }: VideoCardProps) {
             .split(",")
             .map((tag) => tag.trim())
             .filter(Boolean)
+            .filter((tag) => !tag.toLowerCase().includes("youtube") && !tag.toLowerCase().includes("imported"))
             .map((tag) => (
               <span
                 key={tag}
