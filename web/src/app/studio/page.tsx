@@ -8,6 +8,9 @@ import { getSession } from "@/lib/auth-wrapper";
 import { prisma } from "@/lib/prisma";
 import { formatRelative } from "@/lib/format";
 
+// Enable caching for faster page loads
+export const revalidate = 30; // Revalidate every 30 seconds
+
 export default async function StudioPage() {
   const session = await getSession();
   // Note: Studio page is accessible even without login
