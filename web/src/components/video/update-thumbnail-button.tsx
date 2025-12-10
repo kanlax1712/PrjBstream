@@ -185,8 +185,8 @@ export function UpdateThumbnailButton({
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="relative w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
+          <div className="relative w-full max-w-2xl max-h-[90vh] rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl overflow-y-auto my-auto">
             <button
               onClick={handleClose}
               className="absolute right-4 top-4 rounded-full p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
@@ -262,31 +262,36 @@ export function UpdateThumbnailButton({
                 />
               </div>
 
-              {/* Preview */}
-              {(selectedThumbnail || thumbnailUrl) && (
-                <div>
-                  <p className="mb-2 text-sm text-white/70">Preview</p>
-                  <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black">
-                    <img
-                      src={selectedThumbnail || thumbnailUrl}
-                      alt="Thumbnail preview"
-                      className="size-full object-cover"
-                    />
-                  </div>
-                </div>
-              )}
+              {/* Preview and Current Thumbnail - Side by side if both exist */}
+              {((selectedThumbnail || thumbnailUrl) || (currentThumbnailUrl && !currentThumbnailUrl.includes("default-thumbnail"))) && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {/* Preview */}
+                  {(selectedThumbnail || thumbnailUrl) && (
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-white/70">New Thumbnail Preview</p>
+                      <div className="relative aspect-video overflow-hidden rounded-xl border border-cyan-500/30 bg-black">
+                        <img
+                          src={selectedThumbnail || thumbnailUrl}
+                          alt="Thumbnail preview"
+                          className="size-full object-cover"
+                        />
+                      </div>
+                    </div>
+                  )}
 
-              {/* Current thumbnail */}
-              {currentThumbnailUrl && !currentThumbnailUrl.includes("default-thumbnail") && (
-                <div>
-                  <p className="mb-2 text-sm text-white/70">Current Thumbnail</p>
-                  <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black">
-                    <img
-                      src={currentThumbnailUrl}
-                      alt="Current thumbnail"
-                      className="size-full object-cover"
-                    />
-                  </div>
+                  {/* Current thumbnail */}
+                  {currentThumbnailUrl && !currentThumbnailUrl.includes("default-thumbnail") && (
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-white/70">Current Thumbnail</p>
+                      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black">
+                        <img
+                          src={currentThumbnailUrl}
+                          alt="Current thumbnail"
+                          className="size-full object-cover"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -303,8 +308,8 @@ export function UpdateThumbnailButton({
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex gap-3">
+              {/* Actions - Sticky at bottom */}
+              <div className="sticky bottom-0 bg-slate-900 pt-4 border-t border-white/10 mt-4 flex gap-3">
                 <button
                   type="submit"
                   disabled={isUploading || (!thumbnailBlob && !thumbnailUrl.trim())}
