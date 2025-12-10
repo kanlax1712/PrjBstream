@@ -4,15 +4,11 @@ import { VideoGrid } from "@/components/video/video-grid";
 import { PlaylistCarousel } from "@/components/video/playlist-carousel";
 import { InsightCards } from "@/components/dashboard/insight-cards";
 import { getHomeFeed } from "@/data/home";
-import { debugLog } from "@/lib/debug-log";
 
 // Enable caching for faster page loads
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function Home() {
-  // #region agent log
-  await debugLog({location:'page.tsx:11',message:'Home component entry',data:{timestamp:Date.now()},hypothesisId:'D'});
-  // #endregion
   let hero: any = null;
   let secondary: any[] = [];
   let playlists: any[] = [];
@@ -22,21 +18,12 @@ export default async function Home() {
     communityComments: 0,
   };
   try {
-    // #region agent log
-    await debugLog({location:'page.tsx:14',message:'Before getHomeFeed call',data:{},hypothesisId:'D'});
-    // #endregion
     const feed = await getHomeFeed();
-    // #region agent log
-    await debugLog({location:'page.tsx:17',message:'getHomeFeed completed',data:{hasHero:!!feed.hero,secondaryCount:feed.secondary?.length||0,playlistCount:feed.playlists?.length||0},hypothesisId:'D'});
-    // #endregion
     hero = feed.hero;
     secondary = feed.secondary;
     playlists = feed.playlists;
     counts = feed.counts;
   } catch (error) {
-    // #region agent log
-    await debugLog({location:'page.tsx:22',message:'Home component error',data:{error:error instanceof Error?error.message:'unknown',errorName:error instanceof Error?error.name:'unknown',stack:error instanceof Error?error.stack:'unknown'},hypothesisId:'D'});
-    // #endregion
     console.error("Error in Home component:", error);
     // Set defaults on error
     hero = null;
@@ -48,9 +35,6 @@ export default async function Home() {
       communityComments: 0,
     };
   }
-  // #region agent log
-  await debugLog({location:'page.tsx:33',message:'Home component before render',data:{hasHero:!!hero,secondaryCount:secondary?.length||0,playlistCount:playlists?.length||0},hypothesisId:'D'});
-  // #endregion
 
   return (
     <AppShell>

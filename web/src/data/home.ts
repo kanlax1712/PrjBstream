@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { unstable_cache } from "next/cache";
-import { debugLog } from "@/lib/debug-log";
 
 // Optimized home feed with caching and parallel queries
 export async function getHomeFeed() {
@@ -102,9 +101,6 @@ export async function getHomeFeed() {
     const validVideos = videos.filter(v => v.channel && v.channel.id && v.channel.name);
     const hero = validVideos[0] ?? null;
     const secondary = validVideos.slice(1) ?? [];
-    // #region agent log
-    await debugLog({location:'data/home.ts:105',message:'Before return from getHomeFeed',data:{hasHero:!!hero,secondaryCount:secondary.length,playlistCount:playlists.length},hypothesisId:'D'});
-    // #endregion
 
     return {
       hero: hero || null,
