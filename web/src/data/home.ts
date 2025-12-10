@@ -98,6 +98,11 @@ export async function getHomeFeed() {
     };
   } catch (error) {
     console.error("Error fetching home feed:", error);
+    // Log the full error for debugging
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     // Return empty data if database query fails
     return {
       hero: null,

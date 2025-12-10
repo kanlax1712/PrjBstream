@@ -10,7 +10,25 @@ import { Suspense } from "react";
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function Home() {
-  const { hero, secondary, playlists, counts } = await getHomeFeed();
+  let hero, secondary, playlists, counts;
+  try {
+    const feed = await getHomeFeed();
+    hero = feed.hero;
+    secondary = feed.secondary;
+    playlists = feed.playlists;
+    counts = feed.counts;
+  } catch (error) {
+    console.error("Error in Home component:", error);
+    // Set defaults on error
+    hero = null;
+    secondary = [];
+    playlists = [];
+    counts = {
+      videos: 0,
+      channels: 0,
+      communityComments: 0,
+    };
+  }
 
   return (
     <AppShell>
