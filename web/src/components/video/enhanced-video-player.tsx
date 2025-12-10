@@ -1040,6 +1040,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               </button>
             </div>
           </div>
+          </div>
         </div>
 
         {/* Settings Panel - Moved outside controls overlay for better fullscreen positioning */}
@@ -1156,8 +1157,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                   </div>
                 </div>
               </>
-            )}
-        </div>
+        )}
       </div>
 
       <div>
