@@ -110,6 +110,63 @@ export default async function RootLayout({
             }
           `}
         </Script>
+        <Script id="fix-zoom-scroll" strategy="afterInteractive">
+          {`
+            // Fix zoom and scroll position issues
+            (function() {
+              let lastZoom = window.devicePixelRatio || 1;
+              let scrollPosition = { x: 0, y: 0 };
+              
+              // Save scroll position before zoom
+              function saveScrollPosition() {
+                scrollPosition = {
+                  x: window.scrollX || window.pageXOffset || 0,
+                  y: window.scrollY || window.pageYOffset || 0
+                };
+              }
+              
+              // Restore scroll position after zoom
+              function restoreScrollPosition() {
+                requestAnimationFrame(() => {
+                  window.scrollTo(scrollPosition.x, scrollPosition.y);
+                });
+              }
+              
+              // Monitor zoom changes
+              function checkZoom() {
+                const currentZoom = window.devicePixelRatio || 1;
+                if (Math.abs(currentZoom - lastZoom) > 0.1) {
+                  saveScrollPosition();
+                  setTimeout(() => {
+                    restoreScrollPosition();
+                    lastZoom = currentZoom;
+                  }, 100);
+                }
+              }
+              
+              // Listen for zoom events
+              window.addEventListener('resize', checkZoom);
+              window.addEventListener('orientationchange', () => {
+                saveScrollPosition();
+                setTimeout(restoreScrollPosition, 500);
+              });
+              
+              // Save scroll position on scroll
+              let scrollTimeout;
+              window.addEventListener('scroll', () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(saveScrollPosition, 100);
+              }, { passive: true });
+              
+              // Restore scroll position on page load
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', restoreScrollPosition);
+              } else {
+                restoreScrollPosition();
+              }
+            })();
+          `}
+        </Script>
       </body>
     </html>
   );
