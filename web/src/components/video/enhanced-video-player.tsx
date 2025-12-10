@@ -173,79 +173,15 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     }
   }, [video.hasAds, adCompleted, isClient]);
 
-  // Check if video is from YouTube
+  // Check if video is from YouTube - but we now download all videos, so this should always return false
   const isYouTubeVideo = () => {
-    try {
-      if (!video.videoUrl) return false;
-      const url = video.videoUrl.trim();
-      return url.includes("youtube.com") || url.includes("youtu.be");
-    } catch (error) {
-      console.error("Error checking if YouTube video:", error);
-      return false;
-    }
+    // All videos should now be stored locally, no YouTube URLs
+    return false;
   };
 
-  // Extract YouTube video ID with error handling
-  const getYouTubeVideoId = () => {
-    try {
-      if (!video.videoUrl) return null;
-      const url = video.videoUrl.trim();
-      
-      // Handle youtube.com/watch?v=VIDEO_ID
-      const watchMatch = url.match(/[?&]v=([^&]+)/);
-      if (watchMatch && watchMatch[1]) return watchMatch[1];
-      
-      // Handle youtu.be/VIDEO_ID
-      const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
-      if (shortMatch && shortMatch[1]) return shortMatch[1];
-      
-      // Handle youtube.com/embed/VIDEO_ID
-      const embedMatch = url.match(/\/embed\/([^?&]+)/);
-      if (embedMatch && embedMatch[1]) return embedMatch[1];
-      
-      return null;
-    } catch (error) {
-      console.error("Error extracting YouTube video ID:", error);
-      return null;
-    }
-  };
+  // YouTube video ID extraction removed - all videos are now stored locally
 
-  // Get YouTube embed URL with error handling (client-side only to avoid hydration mismatch)
-  const getYouTubeEmbedUrl = (autoplay = false) => {
-    try {
-      // Only generate URL on client side to avoid hydration mismatch
-      if (typeof window === "undefined") {
-        return null;
-      }
-      
-      const videoId = getYouTubeVideoId();
-      if (!videoId) {
-        console.error("Could not extract YouTube video ID from URL:", video.videoUrl);
-        return null;
-      }
-      
-      // Validate video ID format (should be 11 characters, alphanumeric, hyphens, underscores)
-      if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
-        console.error("Invalid YouTube video ID format:", videoId);
-        return null;
-      }
-      
-      const params = new URLSearchParams({
-        enablejsapi: "1",
-        origin: window.location.origin, // Always use client-side origin
-        rel: "0", // Don't show related videos
-        modestbranding: "1", // Hide YouTube logo
-        playsinline: "1", // Play inline on mobile
-      });
-      if (autoplay) {
-        params.set("autoplay", "1");
-      }
-      return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
-    } catch (error) {
-      console.error("Error creating YouTube embed URL:", error);
-      return null;
-    }
-  };
+  // YouTube embed URL function removed - all videos are now stored locally
 
   // Get video URL - handle both external and local videos
   const getVideoUrl = (useDirect = false) => {
@@ -257,11 +193,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
 
     const url = video.videoUrl.trim();
     
-    // YouTube videos are handled separately with iframe
-    if (isYouTubeVideo()) {
-      return null; // Will use iframe instead
-    }
-    
+    // All videos should be stored locally now - no YouTube iframe handling
     // If it's already an external URL (http/https), use it directly
     if (url.startsWith("http://") || url.startsWith("https://")) {
       return url;
@@ -306,28 +238,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
         return;
       }
       
-      // YouTube videos use iframe, skip video element setup
-      if (isYouTubeVideo()) {
-        // Validate YouTube URL before setting up
-        const videoId = getYouTubeVideoId();
-        if (!videoId) {
-          setVideoError("Invalid YouTube video URL. Please check the video link.");
-          setIsLoading(false);
-          return;
-        }
-        
-        // Check if embed URL can be created
-        const embedUrl = getYouTubeEmbedUrl(false);
-        if (!embedUrl) {
-          setVideoError("Unable to create YouTube embed URL. The video may be invalid.");
-          setIsLoading(false);
-          return;
-        }
-        
-        setIsLoading(true); // Will be set to false when iframe loads
-        setVideoError(null);
-        return;
-      }
+      // All videos are now stored locally - no YouTube iframe handling
       
       // Always use API route which proxies external URLs to avoid CORS and security issues
       const finalUrl = `/api/video/${video.id}/stream`;
@@ -541,65 +452,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
         return;
       }
       
-      // Handle YouTube iframe
-      if (isYouTubeVideo() && typeof window !== "undefined") {
-        // Only send postMessage if iframe is ready
-        if (!youtubeIframeReady) {
-          console.debug("YouTube iframe not ready yet, waiting for load...");
-          return;
-        }
-        
-        try {
-          const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
-          if (!iframe) {
-            console.warn("YouTube iframe not found for video:", video.id);
-            return;
-          }
-          
-          // Double-check iframe is ready
-          if (!iframe.contentWindow) {
-            console.warn("YouTube iframe contentWindow not available");
-            setYoutubeIframeReady(false);
-            return;
-          }
-          
-          const iframeSrc = iframe.src;
-          if (!iframeSrc || !iframeSrc.includes("youtube.com")) {
-            console.warn("YouTube iframe src not valid");
-            setYoutubeIframeReady(false);
-            return;
-          }
-          
-          const command = isPlaying ? "pauseVideo" : "playVideo";
-          // Use try-catch for postMessage in case of CORS or security errors
-          try {
-            // Only send postMessage if iframe is from YouTube origin
-            const iframeUrl = new URL(iframeSrc);
-            if (iframeUrl.origin !== "https://www.youtube.com") {
-              console.warn("Iframe origin mismatch, cannot send postMessage");
-              return;
-            }
-            
-            // Ensure we're sending to the correct origin
-            iframe.contentWindow.postMessage(
-              JSON.stringify({ event: "command", func: command, args: "" }),
-              "https://www.youtube.com"
-            );
-            setIsPlaying(!isPlaying);
-          } catch (postError) {
-            // Silently fail - postMessage errors are common and don't break functionality
-            // The user can still control the video using YouTube's native controls
-            console.debug("YouTube postMessage failed:", postError);
-            // Don't update state if postMessage fails - let YouTube handle it
-          }
-        } catch (error) {
-          console.error("Error controlling YouTube video:", error);
-          // Don't set error state - YouTube videos can still be controlled manually
-        }
-        return;
-      }
-      
-      // Handle regular video element
+      // Handle video element (all videos are now regular video files)
       if (videoRef.current) {
         try {
           if (isPlaying) {
@@ -635,53 +488,15 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
       return;
     }
     
-    // Handle YouTube videos - trigger play via postMessage
-    if (isYouTubeVideo() && typeof window !== "undefined") {
-      // Only play if iframe is ready and video is not playing
-      if (youtubeIframeReady && !isPlaying) {
-        try {
-          const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
-          if (iframe && iframe.contentWindow) {
-            const iframeSrc = iframe.src;
-            if (iframeSrc && iframeSrc.includes("youtube.com")) {
-              // Send play command to YouTube iframe
-              iframe.contentWindow.postMessage(
-                JSON.stringify({ event: "command", func: "playVideo", args: "" }),
-                "https://www.youtube.com"
-              );
-              setIsPlaying(true);
-              setShowThumbnail(false); // Hide thumbnail when playing
-            }
-          }
-        } catch (error) {
-          console.error("Error playing YouTube video:", error);
-          // Fallback: click on iframe directly (if it's visible)
-          const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
-          if (iframe) {
-            // Try to click the iframe (YouTube will handle it)
-            iframe.click();
-          }
-        }
-      }
-      return;
-    }
-    
-    // Handle regular videos
-    if (!isYouTubeVideo()) {
-      togglePlayPause();
-    }
+    // All videos use regular video element
+    togglePlayPause();
   };
 
   const handleAdComplete = () => {
     setShowAd(false);
     setAdCompleted(true);
     
-    // Handle YouTube videos differently
-    if (isYouTubeVideo()) {
-      // For YouTube, just show the iframe (no autoplay)
-      // User can click to play
-      return;
-    }
+    // All videos are now regular video files
     
     // Load video after ad completes
     if (videoRef.current) {
@@ -699,16 +514,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     setShowAd(false);
     setAdCompleted(true);
     
-    // Handle YouTube videos differently
-    if (isYouTubeVideo()) {
-      // For YouTube, update embed URL with autoplay (skip button = user interaction)
-      const autoplayUrl = getYouTubeEmbedUrl(true);
-      if (autoplayUrl) {
-        setYoutubeEmbedUrl(autoplayUrl);
-        setYoutubeIframeReady(false); // Reset ready state when URL changes
-      }
-      return;
-    }
+    // All videos are now regular video files
     
     // Load and play video after ad is skipped (skip button click = user interaction)
     if (videoRef.current) {
@@ -1173,11 +979,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               return;
             }
             
-            // Skip error handling for YouTube videos - they use iframe, not video element
-            if (isYouTubeVideo()) {
-              console.log("Video error for YouTube video - this should not happen as YouTube uses iframe");
-              return;
-            }
+            // All videos use video element now
             
             const error = videoRef.current?.error;
             
@@ -1339,7 +1141,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           !isPlaying || showSettings ? "opacity-100" : "opacity-0 md:group-hover:opacity-100 md:opacity-0"
         } ${isFullscreen ? 'z-[9997]' : ''}`}>
           {/* Progress Bar - Only show for non-YouTube videos (YouTube has its own controls) */}
-          {!isYouTubeVideo() && (
+          {(
             <div className="px-4 pb-2">
               <input
                 type="range"
