@@ -151,11 +151,17 @@ export default async function RootLayout({
                 setTimeout(restoreScrollPosition, 500);
               });
               
-              // Save scroll position on scroll
+              // Save scroll position on scroll - throttled for performance
               let scrollTimeout;
+              let isScrolling = false;
               window.addEventListener('scroll', () => {
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(saveScrollPosition, 100);
+                if (!isScrolling) {
+                  isScrolling = true;
+                  requestAnimationFrame(() => {
+                    saveScrollPosition();
+                    isScrolling = false;
+                  });
+                }
               }, { passive: true });
               
               // Restore scroll position on page load

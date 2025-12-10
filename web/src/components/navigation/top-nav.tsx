@@ -20,7 +20,7 @@ export function TopNav({ session, channel }: TopNavProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-slate-950/70 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4 md:px-8">
-        <Link href="/" className="channel-button-ripple flex items-center gap-1.5 text-base font-semibold sm:gap-2 sm:text-lg" prefetch={false}>
+        <Link href="/" className="channel-button-ripple flex items-center gap-1.5 text-base font-semibold sm:gap-2 sm:text-lg" prefetch={true}>
           <div className="relative size-8 overflow-hidden rounded-xl sm:size-9 sm:rounded-2xl">
             <Image
               src="/BS.png?v=1"
@@ -44,6 +44,7 @@ export function TopNav({ session, channel }: TopNavProps) {
           {session?.user && (
             <Link
               href="/studio"
+              prefetch={true}
               className="channel-button-ripple hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white transition sm:inline-flex"
             >
               <Upload className="size-4" />

@@ -79,6 +79,7 @@ export function Sidebar({ session, channel }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               className="channel-button-ripple flex items-center gap-3 rounded-xl px-3 py-2 text-white/70 transition"
             >
               <Icon className="size-4" />
