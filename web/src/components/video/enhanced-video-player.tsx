@@ -295,63 +295,6 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   }, [video.id]);
 
   // YouTube iframe event handling removed - all videos use regular video element
-      try {
-        // Only accept messages from YouTube
-        if (event.origin !== "https://www.youtube.com") return;
-
-        try {
-          const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-          
-          if (data.event === "onStateChange") {
-            // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (cued)
-            if (data.info === 1) {
-              setIsPlaying(true);
-              setVideoError(null); // Clear any previous errors
-              setShowThumbnail(false); // Hide thumbnail when YouTube video starts playing
-            } else if (data.info === 2 || data.info === 0) {
-              setIsPlaying(false);
-              if (data.info === 0) {
-                // Video ended
-                setShowThumbnail(true); // Show thumbnail again when video ends
-              }
-            } else if (data.info === -1) {
-              // Video unstarted - might be loading or error
-              setIsLoading(true);
-            } else if (data.info === 3) {
-              // Buffering
-              setIsLoading(true);
-            }
-          } else if (data.event === "onReady") {
-            setIsLoading(false);
-            setVideoError(null);
-          } else if (data.event === "onError") {
-            // YouTube player error
-            console.error("YouTube player error:", data);
-            setVideoError("YouTube video failed to load. The video may be private, deleted, or unavailable.");
-            setIsLoading(false);
-          }
-        } catch (parseError) {
-          // Ignore parse errors for non-JSON messages
-          // YouTube sends various message types, not all are JSON
-        }
-      } catch (error) {
-        console.error("Error handling YouTube message:", error);
-      }
-    };
-
-    try {
-      window.addEventListener("message", handleYouTubeMessage);
-      return () => {
-        try {
-          window.removeEventListener("message", handleYouTubeMessage);
-        } catch (error) {
-          console.error("Error removing YouTube message listener:", error);
-        }
-      };
-    } catch (error) {
-      console.error("Error setting up YouTube message listener:", error);
-    }
-  }, [video.id, video.videoUrl]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -699,77 +642,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           />
         )}
         
-        {/* YouTube iframe embed with error handling - only render on client to avoid hydration mismatch */}
-        {isClient && youtubeEmbedUrl && (
-          <>
-            <iframe
-              data-video-id={video.id}
-              src={youtubeEmbedUrl}
-              className="absolute inset-0 size-full pointer-events-auto"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              style={{ 
-                display: showAd && !adCompleted ? "none" : showThumbnail ? "none" : "block",
-                zIndex: showThumbnail ? 5 : 10
-              }}
-              onLoad={() => {
-                try {
-                  setIsLoading(false);
-                  setVideoError(null);
-                  // Keep thumbnail visible until user clicks play (YouTube handles its own thumbnail)
-                  // Mark iframe as ready for postMessage after a short delay
-                  // This ensures the iframe is fully initialized
-                  setTimeout(() => {
-                    setYoutubeIframeReady(true);
-                  }, 500);
-                } catch (error) {
-                  console.error("Error in YouTube iframe onLoad:", error);
-                  setYoutubeIframeReady(false);
-                }
-              }}
-              onError={(e) => {
-                console.error("YouTube iframe load error:", e);
-                setVideoError("Failed to load YouTube video. The video may be unavailable or restricted.");
-                setIsLoading(false);
-              }}
-              title={video.title}
-            />
-            
-            {/* Error message overlay for YouTube videos */}
-            {videoError && isYouTubeVideo() && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/90 p-4 z-10">
-                <div className="text-center max-w-md">
-                  <p className="text-rose-400 font-semibold mb-2">⚠️ Video Error</p>
-                  <p className="text-white/70 text-sm mb-4">{videoError}</p>
-                  <div className="flex gap-3 justify-center">
-                    <a
-                      href={video.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-600"
-                    >
-                      Watch on YouTube
-                    </a>
-                    <button
-                      onClick={() => {
-                        setVideoError(null);
-                        setIsLoading(true);
-                        // Force iframe reload
-                        const iframe = document.querySelector(`iframe[data-video-id="${video.id}"]`) as HTMLIFrameElement;
-                        if (iframe) {
-                          iframe.src = iframe.src; // Reload iframe
-                        }
-                      }}
-                      className="rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/30"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        {/* YouTube iframe removed - all videos are now stored locally and played as regular video files */}
         
         {/* Thumbnail overlay (YouTube-style) - shows before video plays */}
         {isClient && showThumbnail && !isLoading && !videoError && (
