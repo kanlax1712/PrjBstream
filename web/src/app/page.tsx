@@ -4,6 +4,10 @@ import { VideoGrid } from "@/components/video/video-grid";
 import { PlaylistCarousel } from "@/components/video/playlist-carousel";
 import { InsightCards } from "@/components/dashboard/insight-cards";
 import { getHomeFeed } from "@/data/home";
+import { Suspense } from "react";
+
+// Enable caching for faster page loads
+export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function Home() {
   const { hero, secondary, playlists, counts } = await getHomeFeed();

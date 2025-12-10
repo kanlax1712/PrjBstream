@@ -15,15 +15,36 @@ export default async function StudioPage() {
   // initiate Google OAuth and automatically create a Bstream account
 
   // Only fetch channels/videos if user is logged in
+  // Optimized queries - only select needed fields and limit results
   const [channels, videos] = session?.user?.id
     ? await Promise.all([
         prisma.channel.findMany({
           where: { ownerId: session.user.id },
           orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            handle: true,
+            description: true,
+            avatarUrl: true,
+            bannerUrl: true,
+            createdAt: true,
+          },
         }),
         prisma.video.findMany({
           where: { channel: { ownerId: session.user.id } },
           orderBy: { publishedAt: "desc" },
+          take: 50, // Limit to 50 most recent videos
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            thumbnailUrl: true,
+            duration: true,
+            status: true,
+            publishedAt: true,
+            videoUrl: true,
+          },
         }),
       ])
     : [[], []];
