@@ -1041,7 +1041,9 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             </div>
           </div>
 
-          {/* Settings Panel - Positioned relative to control bar, not button */}
+          </div>
+
+          {/* Settings Panel - Moved outside controls overlay for better fullscreen positioning */}
           {showSettings && (
             <>
               {/* Backdrop to close on outside click */}
@@ -1052,8 +1054,8 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               />
               {/* Settings Panel - Positioned above the control bar - Same layout in both normal and fullscreen */}
               <div 
-                className={`absolute right-4 w-56 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
-                  isFullscreen ? 'z-[9999]' : 'z-50'
+                className={`w-56 overflow-y-auto overflow-x-hidden rounded-xl border border-white/10 bg-slate-900/98 p-2.5 shadow-2xl backdrop-blur-md settings-panel-scroll ${
+                  isFullscreen ? 'z-[9999] fixed' : 'z-50 absolute'
                 }`}
                 style={{
                   position: isFullscreen ? 'fixed' : 'absolute', // Fixed in fullscreen for viewport positioning
