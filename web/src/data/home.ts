@@ -55,8 +55,14 @@ export async function getHomeFeed() {
         },
         take: 20, // Reduced from 100 for faster loading
       }).then(videos => {
-        // Filter out videos with incomplete channel data
-        return videos.filter(video => video.channel && video.channel.id);
+        // Filter out videos with incomplete or missing channel data
+        return videos.filter(video => {
+          if (!video.channel || !video.channel.id || !video.channel.name) {
+            console.warn("Skipping video with incomplete channel data:", video.id);
+            return false;
+          }
+          return true;
+        });
       }),
       // Optimized playlist query - limit and only fetch essentials
       prisma.playlist.findMany({
