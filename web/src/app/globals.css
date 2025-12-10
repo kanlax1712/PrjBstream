@@ -39,10 +39,15 @@ body {
   }
 }
 
-/* Prevent text size adjustment on iOS */
+/* Prevent text size adjustment on iOS - but allow zoom */
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Ensure zoom works properly */
+  overflow-x: hidden;
+  width: 100%;
+  /* Fix zoom reset issues */
+  transform-origin: top left;
 }
 
 /* Smooth scrolling for mobile */
