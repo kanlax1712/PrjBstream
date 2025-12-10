@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { X, Youtube, Check, Loader2, CheckSquare, Square } from "lucide-react";
 import Image from "next/image";
 
@@ -22,6 +23,7 @@ type Props = {
 const MAX_IMPORT_LIMIT = 15; // Maximum videos that can be imported at once
 
 export function YoutubeVideoSelector({ onClose, onImport }: Props) {
+  const { data: session, status } = useSession();
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -30,24 +32,50 @@ export function YoutubeVideoSelector({ onClose, onImport }: Props) {
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
 
   useEffect(() => {
+    // Wait for session to be ready before fetching videos
+    if (status === "loading") {
+      return; // Still loading session
+    }
+    
+    if (status === "unauthenticated") {
+      setError("Please sign in with Google to import videos.");
+      setIsLoading(false);
+      return;
+    }
+    
+    // Session is authenticated, fetch videos
     fetchVideos();
-  }, []);
+  }, [status]);
 
   const fetchVideos = async () => {
     setIsLoading(true);
     setError("");
     
     try {
-      const response = await fetch("/api/youtube/videos");
+      const response = await fetch("/api/youtube/videos", {
+        cache: "no-store", // Ensure fresh data
+      });
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication required. Please sign in with Google again.");
+        }
         throw new Error(data.message || "Failed to fetch videos");
       }
 
-      setVideos(data.videos || []);
+      if (data.success && data.videos) {
+        setVideos(data.videos || []);
+      } else {
+        setVideos([]);
+        if (data.message) {
+          setError(data.message);
+        }
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load YouTube videos");
+      const errorMessage = err instanceof Error ? err.message : "Failed to load YouTube videos";
+      setError(errorMessage);
+      console.error("YouTube fetch error:", err);
     } finally {
       setIsLoading(false);
     }

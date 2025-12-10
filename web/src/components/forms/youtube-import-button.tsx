@@ -16,7 +16,15 @@ export function YoutubeImportButton() {
     if (status === "authenticated" && session?.user) {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("youtube") === "true") {
-        fetchVideos();
+        // Add a small delay to ensure OAuth tokens are saved to database
+        const timer = setTimeout(() => {
+          fetchVideos();
+          // Clean up URL parameter
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete("youtube");
+          window.history.replaceState({}, "", newUrl.toString());
+        }, 500);
+        return () => clearTimeout(timer);
       }
     }
   }, [status, session]);
@@ -27,20 +35,25 @@ export function YoutubeImportButton() {
     
     try {
       const response = await fetch("/api/youtube/videos");
-      if (response.ok) {
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Videos fetched successfully, show selector
         setShowSelector(true);
       } else if (response.status === 401) {
         // Need to authenticate with Google
+        setError("Authentication required. Redirecting to Google...");
         await signIn("google", {
           callbackUrl: "/studio?youtube=true",
+          redirect: true,
         });
       } else {
-        const data = await response.json();
         setError(data.message || "Failed to fetch YouTube videos. Please try again.");
+        setIsLoading(false);
       }
     } catch (err) {
+      console.error("YouTube fetch error:", err);
       setError("Failed to connect to YouTube. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };

@@ -15,18 +15,33 @@ export async function GET(request: NextRequest) {
 
     // Get Google account from database
     const { prisma } = await import("@/lib/prisma");
-    const account = await prisma.account.findFirst({
+    let account = await prisma.account.findFirst({
       where: {
         userId: session.user.id,
         provider: "google",
       },
     });
 
+    // If account not found, wait a bit and retry (OAuth callback might still be saving)
+    if (!account?.access_token) {
+      // Wait up to 2 seconds for OAuth callback to save account
+      for (let i = 0; i < 4; i++) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        account = await prisma.account.findFirst({
+          where: {
+            userId: session.user.id,
+            provider: "google",
+          },
+        });
+        if (account?.access_token) break;
+      }
+    }
+
     if (!account?.access_token) {
       return NextResponse.json(
         { 
           success: false, 
-          message: "Google account not connected. Please sign in with Google.",
+          message: "Google account not connected. Please sign in with Google again.",
         },
         { status: 401 }
       );
