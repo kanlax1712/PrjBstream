@@ -30,7 +30,7 @@ export function MockSubscriptionsButton() {
       <button
         onClick={handleClick}
         disabled={isLoading}
-        className="rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+        className="channel-button-ripple rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isLoading ? "Creating..." : "Create Mock Subscriptions"}
       </button>
