@@ -97,8 +97,10 @@ export async function getHomeFeed() {
       ]),
     ]);
 
-    const hero = videos[0] ?? null;
-    const secondary = videos.slice(1) ?? [];
+    // Ensure hero video has complete channel data
+    const validVideos = videos.filter(v => v.channel && v.channel.id && v.channel.name);
+    const hero = validVideos[0] ?? null;
+    const secondary = validVideos.slice(1) ?? [];
 
     return {
       hero: hero || null,
