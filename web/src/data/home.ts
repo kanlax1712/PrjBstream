@@ -55,7 +55,7 @@ export async function getHomeFeed() {
         take: 10, // Limit playlists
         select: {
           id: true,
-          name: true,
+          title: true, // Playlist uses 'title' not 'name'
           description: true,
           owner: { select: { name: true } },
           videos: {
