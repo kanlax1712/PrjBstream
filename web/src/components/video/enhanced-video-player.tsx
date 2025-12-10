@@ -946,7 +946,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
         {/* Custom Controls Overlay - Always visible on mobile, show on hover on desktop - Ensure visible in fullscreen */}
         <div className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity ${
           !isPlaying || showSettings || isFullscreen ? "opacity-100" : "opacity-0 md:group-hover:opacity-100 md:opacity-0"
-        } ${isFullscreen ? 'z-[9997]' : ''}`}>
+        } ${isFullscreen ? 'z-[9997] opacity-100' : ''}`}>
           {/* Progress Bar - Only show for non-YouTube videos (YouTube has its own controls) */}
           {(
             <div className="px-4 pb-2">
@@ -1031,8 +1031,9 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                   setShowSettings(!showSettings);
                 }}
                 className={`flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation ${
-                  isFullscreen ? 'opacity-100' : ''
+                  isFullscreen ? 'opacity-100 !visible' : ''
                 }`}
+                style={isFullscreen ? { opacity: 1, visibility: 'visible' } : {}}
                 aria-label="Settings"
                 type="button"
               >
