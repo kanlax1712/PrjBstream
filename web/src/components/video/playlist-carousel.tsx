@@ -48,7 +48,7 @@ export function PlaylistCarousel({ playlists }: Props) {
                 <div>
                   <p className="line-clamp-1">{entry.video.title}</p>
                   <p className="text-xs text-white/40">
-                    {(entry.video.duration / 60).toFixed(0)} min
+                    {entry.video.duration >= 60 ? `${Math.floor(entry.video.duration / 60)} min` : `${entry.video.duration} sec`}
                   </p>
                 </div>
               </Link>

@@ -157,7 +157,7 @@ export default async function StudioPage() {
                           <span>•</span>
                           <span>{formatRelative(video.publishedAt)}</span>
                           <span>•</span>
-                          <span>{(video.duration / 60).toFixed(0)} min</span>
+                          <span>{video.duration >= 60 ? `${Math.floor(video.duration / 60)} min` : `${video.duration} sec`}</span>
                         </div>
                       </div>
                     </Link>
