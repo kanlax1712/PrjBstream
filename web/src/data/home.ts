@@ -84,16 +84,16 @@ export async function getHomeFeed() {
     ]);
 
     const hero = videos[0] ?? null;
-    const secondary = videos.slice(1);
+    const secondary = videos.slice(1) ?? [];
 
     return {
-      hero,
-      secondary,
-      playlists,
+      hero: hero || null,
+      secondary: secondary || [],
+      playlists: playlists || [],
       counts: {
-        videos: counts[0],
-        channels: counts[1],
-        communityComments: counts[2],
+        videos: counts[0] ?? 0,
+        channels: counts[1] ?? 0,
+        communityComments: counts[2] ?? 0,
       },
     };
   } catch (error) {
