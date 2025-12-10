@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const importSchema = z.object({
@@ -12,16 +13,45 @@ const importSchema = z.object({
   duration: z.string(), // Format: "MM:SS" or "HH:MM:SS"
 });
 
-// Helper to parse duration string to seconds
+// Helper to parse duration string to seconds (format: "MM:SS" or "HH:MM:SS")
 function parseDurationString(duration: string): number {
-  const parts = duration.split(":").map(Number);
-  if (parts.length === 2) {
-    // MM:SS
-    return parts[0] * 60 + parts[1];
-  } else if (parts.length === 3) {
-    // HH:MM:SS
-    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (!duration || duration.trim() === "") {
+    console.warn("Empty duration string");
+    return 0;
   }
+  
+  const parts = duration.split(":").map(Number);
+  
+  // Validate all parts are valid numbers
+  if (parts.some(isNaN)) {
+    console.warn("Invalid duration format:", duration);
+    return 0;
+  }
+  
+  if (parts.length === 2) {
+    // MM:SS format
+    const minutes = parts[0];
+    const seconds = parts[1];
+    if (minutes < 0 || seconds < 0 || seconds >= 60) {
+      console.warn("Invalid duration values:", duration);
+      return 0;
+    }
+    const totalSeconds = minutes * 60 + seconds;
+    return totalSeconds > 0 ? totalSeconds : 0;
+  } else if (parts.length === 3) {
+    // HH:MM:SS format
+    const hours = parts[0];
+    const minutes = parts[1];
+    const seconds = parts[2];
+    if (hours < 0 || minutes < 0 || minutes >= 60 || seconds < 0 || seconds >= 60) {
+      console.warn("Invalid duration values:", duration);
+      return 0;
+    }
+    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+    return totalSeconds > 0 ? totalSeconds : 0;
+  }
+  
+  console.warn("Unsupported duration format:", duration);
   return 0;
 }
 
@@ -107,8 +137,15 @@ export async function POST(request: NextRequest) {
     // Parse duration
     const durationInSeconds = parseDurationString(parsed.data.duration);
     if (durationInSeconds <= 0) {
+      console.error("Invalid duration received:", {
+        duration: parsed.data.duration,
+        parsed: durationInSeconds,
+      });
       return NextResponse.json(
-        { success: false, message: "Invalid video duration" },
+        { 
+          success: false, 
+          message: `Invalid video duration: ${parsed.data.duration}. Please ensure the video has a valid duration.` 
+        },
         { status: 400 }
       );
     }
@@ -130,6 +167,11 @@ export async function POST(request: NextRequest) {
         channelId: channel.id,
       },
     });
+
+    // Revalidate pages to show new video immediately
+    revalidatePath("/");
+    revalidatePath("/studio");
+    revalidatePath(`/channel/${channel.handle}`);
 
     return NextResponse.json({
       success: true,

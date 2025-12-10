@@ -190,10 +190,12 @@ export function YoutubeVideoSelector({ onClose, onImport }: Props) {
       // Show results
       if (successCount > 0) {
         setError("");
-        // Refresh page to show imported videos
+        // Close selector and refresh page to show imported videos
+        onClose();
+        // Use router to refresh and navigate to studio
         setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+          window.location.href = "/studio";
+        }, 500);
       } else {
         setError(
           `Failed to import all videos. ${errors.slice(0, 3).join("; ")}`

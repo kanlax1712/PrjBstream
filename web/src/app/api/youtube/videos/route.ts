@@ -182,16 +182,32 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Helper function to parse ISO 8601 duration
+// Helper function to parse ISO 8601 duration (e.g., PT1H2M10S, PT5M30S, PT30S)
 function parseDuration(duration: string): number {
+  if (!duration || duration === "PT0S" || duration === "PT") {
+    return 0;
+  }
+  
+  // Match ISO 8601 duration format: PT[hours]H[minutes]M[seconds]S
+  // Examples: PT1H2M10S, PT5M30S, PT30S, PT1H, PT2M
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!match) return 0;
+  if (!match) {
+    console.warn("Invalid duration format:", duration);
+    return 0;
+  }
   
   const hours = parseInt(match[1] || "0", 10);
   const minutes = parseInt(match[2] || "0", 10);
   const seconds = parseInt(match[3] || "0", 10);
   
-  return hours * 3600 + minutes * 60 + seconds;
+  const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+  
+  // Ensure minimum duration of 1 second if any component exists
+  if (totalSeconds === 0 && (hours > 0 || minutes > 0 || seconds > 0)) {
+    return 1; // Fallback to 1 second minimum
+  }
+  
+  return totalSeconds;
 }
 
 // Helper function to format duration
