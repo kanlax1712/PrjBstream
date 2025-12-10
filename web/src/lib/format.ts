@@ -1,9 +1,20 @@
 export function formatDuration(seconds: number) {
-  const date = new Date(seconds * 1000);
-  const hh = date.getUTCHours();
-  const mm = date.getUTCMinutes().toString().padStart(2, "0");
-  const ss = date.getUTCSeconds().toString().padStart(2, "0");
-  return hh ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`;
+  // Handle invalid or zero duration
+  if (!seconds || seconds <= 0 || isNaN(seconds)) {
+    return "0:00";
+  }
+  
+  // Round to nearest integer to avoid floating point issues
+  const totalSeconds = Math.round(seconds);
+  
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  
+  const mm = minutes.toString().padStart(2, "0");
+  const ss = secs.toString().padStart(2, "0");
+  
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${minutes}:${ss}`;
 }
 
 export function formatNumber(value: number) {
