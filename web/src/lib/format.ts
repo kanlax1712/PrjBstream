@@ -24,8 +24,16 @@ export function formatNumber(value: number) {
   }).format(value);
 }
 
-export function formatRelative(date: Date) {
-  const diff = (Date.now() - date.getTime()) / 1000;
+export function formatRelative(date: Date | string) {
+  // Handle both Date objects and date strings
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  
+  // Validate date
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return "recently";
+  }
+  
+  const diff = (Date.now() - dateObj.getTime()) / 1000;
   if (diff < 60) return "just now";
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
