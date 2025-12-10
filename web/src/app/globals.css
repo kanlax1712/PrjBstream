@@ -464,6 +464,8 @@ video:-ms-fullscreen {
   /* GPU acceleration for better performance */
   will-change: transform;
   transform: translateZ(0);
+  /* Prevent layout shifts */
+  contain: layout style paint;
 }
 
 .channel-button-ripple::before {
