@@ -805,8 +805,16 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                 return;
               }
               
-              // If API route failed, try direct external URL as fallback (only for non-YouTube)
-              if (video.videoUrl.startsWith("http://") || video.videoUrl.startsWith("https://")) {
+              // If quality-specific URL failed, try falling back to original stream
+              if (videoSrc && videoSrc.includes("/quality/")) {
+                console.log("Quality-specific URL failed, falling back to original stream");
+                fallbackUrl = `/api/video/${video.id}/stream`;
+                setSelectedQuality("auto");
+                if (videoRef.current) {
+                  videoRef.current.crossOrigin = "anonymous";
+                }
+              } else if (video.videoUrl.startsWith("http://") || video.videoUrl.startsWith("https://")) {
+                // If API route failed, try direct external URL as fallback (only for non-YouTube)
                 console.log("API route failed, trying direct external URL fallback");
                 fallbackUrl = video.videoUrl;
                 // Remove crossOrigin for direct external URLs
