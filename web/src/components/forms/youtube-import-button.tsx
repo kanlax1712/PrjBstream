@@ -13,19 +13,26 @@ export function YoutubeImportButton() {
 
   // Auto-fetch videos if user just authenticated via Google OAuth
   useEffect(() => {
+    console.log("🔍 YoutubeImportButton effect:", { status, hasSession: !!session, hasUser: !!session?.user });
+    
     // Wait for session to be ready
     if (status === "loading") {
+      console.log("⏳ Session still loading...");
       return;
     }
     
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasYoutubeParam = urlParams.get("youtube") === "true";
+    console.log("🔍 URL params check:", { hasYoutubeParam, search: window.location.search });
+    
     if (status === "authenticated" && session?.user) {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("youtube") === "true") {
+      console.log("✅ User authenticated:", session.user.email);
+      if (hasYoutubeParam) {
         console.log("🎬 YouTube import detected, fetching videos...");
         // Add a delay to ensure OAuth tokens are saved to database
         // Increased delay to 2 seconds to ensure account is saved
         const timer = setTimeout(() => {
-          console.log("🔄 Starting video fetch...");
+          console.log("🔄 Starting video fetch after delay...");
           fetchVideos();
           // Clean up URL parameter
           const newUrl = new URL(window.location.href);
@@ -33,11 +40,13 @@ export function YoutubeImportButton() {
           window.history.replaceState({}, "", newUrl.toString());
         }, 2000); // Increased to 2 seconds
         return () => clearTimeout(timer);
+      } else {
+        console.log("ℹ️ No youtube parameter found");
       }
     } else if (status === "unauthenticated") {
+      console.log("⚠️ User not authenticated");
       // If not authenticated but youtube param exists, redirect to login
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("youtube") === "true") {
+      if (hasYoutubeParam) {
         console.log("⚠️ Not authenticated, redirecting to Google OAuth...");
         signIn("google", {
           callbackUrl: "/studio?youtube=true",

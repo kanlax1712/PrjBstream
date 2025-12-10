@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ThumbnailSelector } from "./thumbnail-selector";
 import { YoutubeImportButton } from "./youtube-import-button";
 import { formatDuration } from "@/lib/format";
@@ -68,6 +68,7 @@ type UploadProgress = {
 
 export function VideoUploadForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
   const videoFileRef = useRef<File | null>(null); // Preserve video file across re-renders
   const [state, setState] = useState<UploadState>({
@@ -83,7 +84,20 @@ export function VideoUploadForm() {
   const [videoQuality, setVideoQuality] = useState<string>("auto");
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [hasAds, setHasAds] = useState<boolean>(false);
-  const [uploadMethod, setUploadMethod] = useState<"local" | "youtube">("local");
+  
+  // Check URL parameter to auto-select YouTube import mode
+  const youtubeParam = searchParams?.get("youtube");
+  const [uploadMethod, setUploadMethod] = useState<"local" | "youtube">(
+    youtubeParam === "true" ? "youtube" : "local"
+  );
+  
+  // Auto-switch to YouTube mode if parameter exists
+  useEffect(() => {
+    if (youtubeParam === "true" && uploadMethod !== "youtube") {
+      console.log("🎬 Auto-switching to YouTube import mode");
+      setUploadMethod("youtube");
+    }
+  }, [youtubeParam, uploadMethod]);
 
   // Sync videoFile state with ref
   useEffect(() => {
