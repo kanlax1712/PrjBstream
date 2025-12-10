@@ -514,30 +514,75 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   };
 
   const handleQualityChange = async (quality: string) => {
-    setSelectedQuality(quality);
+    if (!videoRef.current) return;
     
-    // Switch video source based on quality
-    if (quality === "auto") {
-      // Use original video URL or API route
-      const url = getVideoUrl();
-      if (url) {
-        setVideoSrc(url);
-        if (videoRef.current) {
-          videoRef.current.src = url;
-          videoRef.current.load();
-        }
+    // Save current playback state
+    const wasPlaying = !videoRef.current.paused;
+    const currentTime = videoRef.current.currentTime;
+    
+    setSelectedQuality(quality);
+    setVideoError(null);
+    setIsLoading(true);
+    
+    try {
+      // Switch video source based on quality
+      let newUrl: string;
+      
+      if (quality === "auto") {
+        // Use original video URL or API route
+        newUrl = getVideoUrl() || `/api/video/${video.id}/stream`;
+      } else {
+        // Use quality-specific API route
+        newUrl = `/api/video/${video.id}/quality/${quality}`;
       }
-    } else {
-      // Use quality-specific API route
-      const qualityUrl = `/api/video/${video.id}/quality/${quality}`;
-      setVideoSrc(qualityUrl);
+      
+      // Check if the quality URL is valid before switching
+      const response = await fetch(newUrl, { method: "HEAD" });
+      if (!response.ok && response.status !== 206) {
+        // Quality not available, fallback to original
+        console.warn(`Quality ${quality} not available, using original`);
+        newUrl = `/api/video/${video.id}/stream`;
+      }
+      
+      setVideoSrc(newUrl);
+      
+      // Wait for video to load metadata before restoring playback
+      const handleLoadedMetadata = () => {
+        if (videoRef.current) {
+          // Restore playback position
+          videoRef.current.currentTime = currentTime;
+          
+          // Restore playback state
+          if (wasPlaying) {
+            videoRef.current.play().catch((err) => {
+              console.warn("Failed to auto-play after quality change:", err);
+            });
+          }
+          
+          setIsLoading(false);
+          videoRef.current.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        }
+      };
+      
+      videoRef.current.addEventListener("loadedmetadata", handleLoadedMetadata);
+      videoRef.current.src = newUrl;
+      videoRef.current.load();
+      
+      console.log("Quality changed to:", quality);
+    } catch (error) {
+      console.error("Error changing quality:", error);
+      setVideoError("Failed to change video quality. Using original quality.");
+      setIsLoading(false);
+      
+      // Fallback to original quality
+      const fallbackUrl = `/api/video/${video.id}/stream`;
+      setVideoSrc(fallbackUrl);
+      setSelectedQuality("auto");
       if (videoRef.current) {
-        videoRef.current.src = qualityUrl;
+        videoRef.current.src = fallbackUrl;
         videoRef.current.load();
       }
     }
-    
-    console.log("Quality changed to:", quality);
   };
 
   const handlePlaybackSpeedChange = (speed: number) => {
