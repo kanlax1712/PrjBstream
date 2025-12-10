@@ -179,16 +179,70 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       try {
         if (user) {
           token.id = user.id;
           token.name = user.name;
         }
+        
         // Store OAuth account info for YouTube API access
         if (account?.provider === "google" && account.access_token) {
           token.googleAccessToken = account.access_token;
           token.googleRefreshToken = account.refresh_token;
+          
+          // Explicitly save account to database if adapter is available
+          // This ensures the account is saved even with JWT strategy
+          if (adapter && user?.id) {
+            try {
+              // Check if account already exists
+              const existingAccount = await prisma.account.findUnique({
+                where: {
+                  provider_providerAccountId: {
+                    provider: "google",
+                    providerAccountId: account.providerAccountId,
+                  },
+                },
+              });
+              
+              if (!existingAccount) {
+                // Create account if it doesn't exist
+                await prisma.account.create({
+                  data: {
+                    userId: user.id,
+                    type: account.type,
+                    provider: "google",
+                    providerAccountId: account.providerAccountId,
+                    access_token: account.access_token,
+                    refresh_token: account.refresh_token || null,
+                    expires_at: account.expires_at || null,
+                    token_type: account.token_type || null,
+                    scope: account.scope || null,
+                    id_token: account.id_token || null,
+                    session_state: account.session_state || null,
+                  },
+                });
+                console.log("✅ Google account saved to database");
+              } else {
+                // Update existing account with new tokens
+                await prisma.account.update({
+                  where: { id: existingAccount.id },
+                  data: {
+                    access_token: account.access_token,
+                    refresh_token: account.refresh_token || existingAccount.refresh_token,
+                    expires_at: account.expires_at || existingAccount.expires_at,
+                    token_type: account.token_type || existingAccount.token_type,
+                    scope: account.scope || existingAccount.scope,
+                    id_token: account.id_token || existingAccount.id_token,
+                  },
+                });
+                console.log("✅ Google account tokens updated in database");
+              }
+            } catch (dbError) {
+              console.error("❌ Failed to save Google account to database:", dbError);
+              // Don't block the auth flow if account save fails
+            }
+          }
         }
         return token;
       } catch (error) {
@@ -217,7 +271,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       try {
         // Allow all sign-ins, but log for debugging
         if (account?.provider === "google") {
-          console.log("Google OAuth sign-in:", user.email);
+          console.log("✅ Google OAuth sign-in:", user.email);
+          console.log("✅ Account data:", {
+            provider: account.provider,
+            hasAccessToken: !!account.access_token,
+            hasRefreshToken: !!account.refresh_token,
+          });
         }
         return true;
       } catch (error) {
@@ -225,6 +284,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Don't block sign-in on callback errors
         return true;
       }
+    },
+    async redirect({ url, baseUrl }) {
+      // Handle redirects properly, especially for YouTube import flow
+      console.log("🔄 Redirect callback:", { url, baseUrl });
+      
+      // If URL is relative, make it absolute
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      // If URL is on same origin, allow it
+      if (new URL(url).origin === baseUrl) {
+        return url;
+      }
+      // Default to base URL
+      return baseUrl;
     },
   },
 });
