@@ -219,7 +219,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     token_type: account.token_type || null,
                     scope: account.scope || null,
                     id_token: account.id_token || null,
-                    session_state: account.session_state || null,
+                    session_state: (account.session_state as string) || null,
                   },
                 });
                 console.log("✅ Google account saved to database");
