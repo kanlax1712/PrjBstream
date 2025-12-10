@@ -40,7 +40,7 @@ export function SubscribeButton({
     <button
       onClick={handleClick}
       disabled={isLoading}
-      className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+      className={`channel-button-ripple rounded-full px-5 py-2 text-sm font-semibold transition ${
         isSubscribed
           ? "border border-white/20 bg-white/10 text-white hover:bg-white/20"
           : "bg-white text-slate-950 hover:bg-white/90"

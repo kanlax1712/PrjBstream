@@ -22,9 +22,9 @@ export function UserMenu({ session, channel }: Props) {
     return (
       <button
         onClick={() => signIn()}
-        className="login-button-liquid relative overflow-hidden rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-all duration-300"
+        className="channel-button-ripple rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white transition"
       >
-        <span className="relative z-10">Login</span>
+        <span>Login</span>
       </button>
     );
   }
@@ -68,10 +68,10 @@ export function UserMenu({ session, channel }: Props) {
           <div className="flex flex-col gap-1">
             <Link
               href="/studio"
-              className="nav-link-liquid rounded-xl px-3 py-2 text-white/80 transition"
+              className="channel-button-ripple rounded-xl px-3 py-2 text-white/80 transition"
               onClick={() => setOpen(false)}
             >
-              <span className="relative z-10">Creator Studio</span>
+              <span>Creator Studio</span>
             </Link>
             <button
               className="channel-button-ripple rounded-xl px-3 py-2 text-left text-rose-300 transition hover:bg-white/5"
