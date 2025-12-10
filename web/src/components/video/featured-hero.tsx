@@ -46,6 +46,7 @@ export function FeaturedHero({ video }: Props) {
               .split(",")
               .map((tag) => tag.trim())
               .filter(Boolean)
+              .filter((tag) => !tag.toLowerCase().includes("youtube") && !tag.toLowerCase().includes("imported"))
               .map((tag) => (
                 <span
                   className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70"

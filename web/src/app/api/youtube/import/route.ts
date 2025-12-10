@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
         videoUrl: parsed.data.videoUrl, // YouTube URL
         thumbnailUrl: parsed.data.thumbnailUrl || "/uploads/default-thumbnail.svg",
         duration: durationInSeconds,
-        tags: "youtube,imported",
+        tags: "", // No YouTube-related tags - videos are just regular Bstream videos
         status: "READY",
         visibility: "PUBLIC",
         hasAds: false,

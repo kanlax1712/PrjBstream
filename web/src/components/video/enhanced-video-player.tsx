@@ -1606,6 +1606,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             .split(",")
             .map((tag) => tag.trim())
             .filter(Boolean)
+            .filter((tag) => !tag.toLowerCase().includes("youtube") && !tag.toLowerCase().includes("imported"))
             .map((tag) => (
               <span
                 key={tag}
