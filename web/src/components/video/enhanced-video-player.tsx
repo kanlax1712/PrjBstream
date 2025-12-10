@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Settings, Download, PictureInPicture, Play, Pause, Maximize, Minimize, Volume2, VolumeX, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Settings, Download, PictureInPicture, Play, Pause, Maximize, Minimize, Volume2, VolumeX, ThumbsUp, ThumbsDown, MoreVertical } from "lucide-react";
 import { formatDuration, formatRelative } from "@/lib/format";
 import { SubscribeButton } from "@/components/video/subscribe-button";
 import { VideoAd } from "@/components/video/video-ad";
@@ -943,6 +943,75 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           </div>
         )}
 
+        {/* Top Control Bar - Only visible in fullscreen mode */}
+        {isFullscreen && (
+          <div 
+            className="absolute top-0 left-0 right-0 flex items-center justify-end gap-2 px-4 py-3 bg-gradient-to-b from-black/80 to-transparent z-[9998]"
+            style={{ opacity: 1, visibility: 'visible', pointerEvents: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Volume Button - Right side */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleMute(e);
+              }}
+              className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation"
+              aria-label={isMuted ? "Unmute" : "Mute"}
+              type="button"
+              style={{ opacity: 1, visibility: 'visible', display: 'flex', pointerEvents: 'auto', cursor: 'pointer' }}
+            >
+              {isMuted || volume === 0 ? (
+                <VolumeX className="size-5" />
+              ) : (
+                <Volume2 className="size-5" />
+              )}
+            </button>
+
+            {/* Settings Button - Right next to Volume */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSettings(!showSettings);
+              }}
+              className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation"
+              aria-label="Settings"
+              type="button"
+              style={{ opacity: 1, visibility: 'visible', display: 'flex', pointerEvents: 'auto', cursor: 'pointer' }}
+            >
+              <Settings className="size-5" />
+            </button>
+
+            {/* Minimize/Exit Fullscreen Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleFullscreen(e);
+              }}
+              className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation"
+              aria-label="Exit Fullscreen"
+              type="button"
+              style={{ opacity: 1, visibility: 'visible', display: 'flex', pointerEvents: 'auto', cursor: 'pointer' }}
+            >
+              <Minimize className="size-5" />
+            </button>
+
+            {/* More Menu (Three Dots) - Placeholder for future features */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Placeholder for more menu functionality
+              }}
+              className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation"
+              aria-label="More options"
+              type="button"
+              style={{ opacity: 1, visibility: 'visible', display: 'flex', pointerEvents: 'auto', cursor: 'pointer' }}
+            >
+              <MoreVertical className="size-5" />
+            </button>
+          </div>
+        )}
+
         {/* Custom Controls Overlay - Always visible on mobile, show on hover on desktop - Ensure visible in fullscreen */}
         <div 
           className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity ${
@@ -1030,10 +1099,16 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               )}
             </button>
 
-            {/* Settings Menu - Always visible in fullscreen */}
+            {/* Settings Menu - Always visible in fullscreen - Positioned after Fullscreen button */}
             <div 
-              className={`relative settings-menu-container ml-auto ${isFullscreen ? 'z-[9998]' : 'z-50'}`}
-              style={isFullscreen ? { opacity: 1, visibility: 'visible', display: 'block' } : {}}
+              className="relative settings-menu-container ml-auto"
+              style={isFullscreen ? { 
+                opacity: 1, 
+                visibility: 'visible', 
+                display: 'block',
+                zIndex: 9998,
+                position: 'relative'
+              } : {}}
             >
               <button
                 onClick={(e) => {
@@ -1041,13 +1116,12 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                   setShowSettings(!showSettings);
                 }}
                 className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation"
-                style={isFullscreen ? { 
+                style={{ 
                   opacity: 1, 
                   visibility: 'visible', 
                   display: 'flex',
-                  pointerEvents: 'auto',
-                  zIndex: 9999
-                } : {}}
+                  pointerEvents: 'auto'
+                }}
                 aria-label="Settings"
                 type="button"
               >
