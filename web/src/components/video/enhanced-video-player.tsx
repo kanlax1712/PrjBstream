@@ -1105,7 +1105,10 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                 if (videoId) {
                   thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
                 }
-              } else if (video.thumbnailUrl && !video.thumbnailUrl.includes("placeholder") && !video.thumbnailUrl.startsWith("data:")) {
+              } else if (video.thumbnailUrl && 
+                !video.thumbnailUrl.includes("placeholder") && 
+                !video.thumbnailUrl.includes("No Thumbnail") &&
+                !video.thumbnailUrl.startsWith("data:")) {
                 // Use provided thumbnail
                 thumbnailUrl = video.thumbnailUrl;
               } else {
@@ -1137,7 +1140,10 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
           <video
           ref={videoRef}
           src={videoSrc}
-          poster={video.thumbnailUrl && !video.thumbnailUrl.includes("placeholder") && !video.thumbnailUrl.startsWith("data:")
+          poster={video.thumbnailUrl && 
+            !video.thumbnailUrl.includes("placeholder") && 
+            !video.thumbnailUrl.includes("No Thumbnail") &&
+            !video.thumbnailUrl.startsWith("data:")
             ? video.thumbnailUrl
             : undefined}
           className="size-full"

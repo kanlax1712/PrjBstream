@@ -27,7 +27,10 @@ export function VideoCard({ video }: VideoCardProps) {
     >
       <div className="relative overflow-hidden rounded-2xl bg-slate-900">
         <Image
-          src={video.thumbnailUrl && !video.thumbnailUrl.includes("placeholder") && !video.thumbnailUrl.startsWith("data:") 
+          src={video.thumbnailUrl && 
+            !video.thumbnailUrl.includes("placeholder") && 
+            !video.thumbnailUrl.includes("No Thumbnail") &&
+            !video.thumbnailUrl.startsWith("data:") 
             ? video.thumbnailUrl 
             : "/uploads/default-thumbnail.svg"}
           alt={video.title}

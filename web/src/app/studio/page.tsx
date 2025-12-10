@@ -112,7 +112,10 @@ export default async function StudioPage() {
                     >
                       <div className="relative aspect-video w-32 flex-shrink-0 overflow-hidden rounded-xl bg-black sm:w-40">
                         <img
-                          src={video.thumbnailUrl && !video.thumbnailUrl.includes("placeholder") && !video.thumbnailUrl.startsWith("data:") 
+                          src={video.thumbnailUrl && 
+                            !video.thumbnailUrl.includes("placeholder") && 
+                            !video.thumbnailUrl.includes("No Thumbnail") &&
+                            !video.thumbnailUrl.startsWith("data:") 
                             ? video.thumbnailUrl 
                             : "/uploads/default-thumbnail.svg"}
                           alt={video.title}

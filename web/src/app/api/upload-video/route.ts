@@ -160,32 +160,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If no thumbnail provided, create a default placeholder file
-    // Note: In production, you might want to extract a frame server-side using FFmpeg
+    // If no thumbnail provided, use default thumbnail (client should auto-extract, but fallback here)
     if (!finalThumbnailUrl) {
-      console.log("No thumbnail provided, creating default placeholder");
-      try {
-        // Create a simple placeholder SVG file
-        const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450">
-          <defs>
-            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
-              <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
-            </linearGradient>
-          </defs>
-          <rect width="800" height="450" fill="url(#grad)" />
-          <text x="50%" y="50%" font-family="Arial" font-size="24" fill="white" text-anchor="middle" dominant-baseline="middle">No Thumbnail</text>
-        </svg>`;
-        
-        const placeholderFilename = `thumb-${Date.now()}-placeholder.svg`;
-        const placeholderPath = path.join(uploadDir, placeholderFilename);
-        await fs.writeFile(placeholderPath, placeholderSvg, "utf-8");
-        finalThumbnailUrl = `/uploads/${placeholderFilename}`;
-      } catch (err) {
-        console.error("Failed to create placeholder thumbnail:", err);
-        // Fallback to a simple relative path
-        finalThumbnailUrl = "/uploads/default-thumbnail.svg";
-      }
+      console.log("No thumbnail provided, using default thumbnail");
+      // Use the default thumbnail SVG that doesn't show "No Thumbnail" text
+      finalThumbnailUrl = "/uploads/default-thumbnail.svg";
     }
 
     // Get or create channel for user

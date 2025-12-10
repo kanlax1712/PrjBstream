@@ -73,7 +73,10 @@ export function FeaturedHero({ video }: Props) {
         </div>
         <div className="relative min-h-64 overflow-hidden rounded-3xl border border-white/5 bg-slate-900">
           <Image
-            src={video.thumbnailUrl && !video.thumbnailUrl.includes("placeholder") && !video.thumbnailUrl.startsWith("data:") 
+            src={video.thumbnailUrl && 
+              !video.thumbnailUrl.includes("placeholder") && 
+              !video.thumbnailUrl.includes("No Thumbnail") &&
+              !video.thumbnailUrl.startsWith("data:") 
               ? video.thumbnailUrl 
               : "/uploads/default-thumbnail.svg"}
             alt={`${video.title} poster`}
