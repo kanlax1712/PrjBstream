@@ -57,7 +57,7 @@ export function DeleteVideoButton({ videoId, videoTitle }: Props) {
               onClick={handleDelete}
               disabled={isPending}
               type="button"
-              className="rounded px-2 py-1 text-xs font-medium text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"
+              className="channel-button-ripple rounded px-2 py-1 text-xs font-medium text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"
             >
               {isPending ? "Deleting..." : "Confirm"}
             </button>
@@ -68,7 +68,7 @@ export function DeleteVideoButton({ videoId, videoTitle }: Props) {
               }}
               disabled={isPending}
               type="button"
-              className="rounded px-2 py-1 text-xs font-medium text-white/60 hover:bg-white/10 disabled:opacity-50"
+              className="channel-button-ripple rounded px-2 py-1 text-xs font-medium text-white/60 hover:bg-white/10 disabled:opacity-50"
             >
               Cancel
             </button>
@@ -78,7 +78,7 @@ export function DeleteVideoButton({ videoId, videoTitle }: Props) {
             onClick={handleDelete}
             disabled={isPending}
             type="button"
-            className="flex items-center gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50"
+            className="channel-button-ripple flex items-center gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50"
             title="Delete video"
           >
             <Trash2 className="size-4" />

@@ -313,7 +313,7 @@ export function UpdateThumbnailButton({
                 <button
                   type="submit"
                   disabled={isUploading || (!thumbnailBlob && !thumbnailUrl.trim())}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="channel-button-ripple flex flex-1 items-center justify-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isUploading ? (
                     <>
@@ -330,7 +330,7 @@ export function UpdateThumbnailButton({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
+                  className="channel-button-ripple rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
                 >
                   Cancel
                 </button>
