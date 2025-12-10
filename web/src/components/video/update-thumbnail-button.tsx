@@ -26,15 +26,34 @@ export function UpdateThumbnailButton({
 
   // Fetch video file for thumbnail extraction
   const loadVideoFile = async () => {
-    if (!videoUrl || videoUrl.startsWith("http")) {
-      // For external URLs, we can't extract frames client-side easily
+    if (!videoUrl) {
       return null;
     }
 
     try {
-      const response = await fetch(videoUrl);
-      const blob = await response.blob();
-      const file = new File([blob], "video.mp4", { type: blob.type });
+      // Handle both local and remote URLs
+      let blob: Blob;
+      
+      if (videoUrl.startsWith("http://") || videoUrl.startsWith("https://")) {
+        // For remote URLs, fetch with CORS handling
+        const response = await fetch(videoUrl, {
+          mode: 'cors',
+          credentials: 'omit',
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch video: ${response.statusText}`);
+        }
+        blob = await response.blob();
+      } else {
+        // For local URLs (relative paths)
+        const response = await fetch(videoUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch video: ${response.statusText}`);
+        }
+        blob = await response.blob();
+      }
+
+      const file = new File([blob], "video.mp4", { type: blob.type || "video/mp4" });
       videoFileRef.current = file;
       return file;
     } catch (err) {
@@ -125,9 +144,18 @@ export function UpdateThumbnailButton({
   const handleOpen = async () => {
     setIsOpen(true);
     setMessage(null);
-    // Load video file if available for thumbnail extraction
-    if (videoUrl && !videoUrl.startsWith("http")) {
-      await loadVideoFile();
+    // Load video file for thumbnail extraction (works for both local and remote URLs)
+    if (videoUrl) {
+      setMessage({ type: "success", text: "Loading video for thumbnail extraction..." });
+      const file = await loadVideoFile();
+      if (!file) {
+        setMessage({ 
+          type: "error", 
+          text: "Could not load video file. You can still upload an image or enter a URL." 
+        });
+      } else {
+        setMessage(null);
+      }
     }
   };
 
@@ -170,16 +198,32 @@ export function UpdateThumbnailButton({
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Thumbnail from video file */}
-              {videoFileRef.current && (
+              {videoUrl && (
                 <div>
                   <label className="mb-2 block text-sm text-white/70">
-                    Select Thumbnail from Video
+                    Capture Thumbnail from Video
                   </label>
-                  <ThumbnailSelector
-                    videoFile={videoFileRef.current}
-                    onThumbnailSelect={handleThumbnailSelect}
-                    selectedThumbnail={selectedThumbnail}
-                  />
+                  {videoFileRef.current ? (
+                    <ThumbnailSelector
+                      videoFile={videoFileRef.current}
+                      onThumbnailSelect={handleThumbnailSelect}
+                      selectedThumbnail={selectedThumbnail}
+                    />
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-8 text-center text-sm text-white/60">
+                      <p>Loading video...</p>
+                      <p className="mt-2 text-xs">If this takes too long, you can upload an image or enter a URL below.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Divider */}
+              {videoUrl && (
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 border-t border-white/10"></div>
+                  <span className="text-xs text-white/40">OR</span>
+                  <div className="flex-1 border-t border-white/10"></div>
                 </div>
               )}
 
