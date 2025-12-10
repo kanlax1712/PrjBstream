@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { VideoUploadForm } from "@/components/forms/video-upload-form";
 import { DeleteVideoButton } from "@/components/video/delete-video-button";
+import { UpdateThumbnailButton } from "@/components/video/update-thumbnail-button";
 import { CreateChannelForm } from "@/components/channels/create-channel-form";
 import { getSession } from "@/lib/auth-wrapper";
 import { prisma } from "@/lib/prisma";
@@ -136,7 +137,12 @@ export default async function StudioPage() {
                         </div>
                       </div>
                     </Link>
-                    <div className="flex items-start pt-1">
+                    <div className="flex items-start gap-2 pt-1">
+                      <UpdateThumbnailButton 
+                        videoId={video.id} 
+                        videoUrl={video.videoUrl}
+                        currentThumbnailUrl={video.thumbnailUrl}
+                      />
                       <DeleteVideoButton videoId={video.id} videoTitle={video.title} />
                     </div>
                   </div>
