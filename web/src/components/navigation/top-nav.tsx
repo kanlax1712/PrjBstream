@@ -45,7 +45,7 @@ export function TopNav({ session, channel }: TopNavProps) {
             <Link
               href="/studio"
               prefetch={true}
-              className="channel-button-ripple hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white transition sm:inline-flex"
+              className="channel-button-ripple hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white sm:inline-flex"
             >
               <Upload className="size-4" />
               <span className="hidden lg:inline">Upload</span>

@@ -80,7 +80,7 @@ export function Sidebar({ session, channel }: SidebarProps) {
               key={item.href}
               href={item.href}
               prefetch={true}
-              className="channel-button-ripple flex items-center gap-3 rounded-xl px-3 py-2 text-white/70 transition"
+              className="channel-button-ripple flex items-center gap-3 rounded-xl px-3 py-2 text-white/70"
             >
               <Icon className="size-4" />
               <span>{item.label}</span>
@@ -94,7 +94,7 @@ export function Sidebar({ session, channel }: SidebarProps) {
           <p>Sign in to sync your playlists and creator studio.</p>
           <Link
             href="/login"
-            className="channel-button-ripple mt-3 inline-flex items-center justify-center rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white transition"
+            className="channel-button-ripple mt-3 inline-flex items-center justify-center rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white"
           >
             <span>Login</span>
           </Link>
