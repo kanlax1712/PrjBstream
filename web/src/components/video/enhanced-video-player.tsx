@@ -536,12 +536,22 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
         newUrl = `/api/video/${video.id}/quality/${quality}`;
       }
       
-      // Check if the quality URL is valid before switching
-      const response = await fetch(newUrl, { method: "HEAD" });
-      if (!response.ok && response.status !== 206) {
-        // Quality not available, fallback to original
-        console.warn(`Quality ${quality} not available, using original`);
-        newUrl = `/api/video/${video.id}/stream`;
+      // Check if the quality URL is valid before switching (only for non-auto qualities)
+      if (quality !== "auto") {
+        try {
+          const response = await fetch(newUrl, { method: "HEAD" });
+          if (!response.ok && response.status !== 206 && response.status !== 200) {
+            // Quality not available, fallback to original
+            console.warn(`Quality ${quality} not available (status: ${response.status}), using original`);
+            newUrl = `/api/video/${video.id}/stream`;
+            setSelectedQuality("auto");
+          }
+        } catch (fetchError) {
+          // Network error or CORS issue - fallback to original
+          console.warn(`Failed to check quality ${quality}, using original:`, fetchError);
+          newUrl = `/api/video/${video.id}/stream`;
+          setSelectedQuality("auto");
+        }
       }
       
       setVideoSrc(newUrl);
