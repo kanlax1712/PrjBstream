@@ -295,7 +295,6 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
   }, [video.id]);
 
   // YouTube iframe event handling removed - all videos use regular video element
-  // No YouTube message listeners needed
       try {
         // Only accept messages from YouTube
         if (event.origin !== "https://www.youtube.com") return;
@@ -475,8 +474,6 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
       target.closest("button") ||
       target.closest("input") ||
       target.closest(".settings-menu-container") ||
-      target.closest("iframe") ||
-      target.tagName === "IFRAME"
     ) {
       return;
     }
