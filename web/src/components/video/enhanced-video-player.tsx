@@ -945,7 +945,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
 
         {/* Custom Controls Overlay - Always visible on mobile, show on hover on desktop - Ensure visible in fullscreen */}
         <div className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity ${
-          !isPlaying || showSettings ? "opacity-100" : "opacity-0 md:group-hover:opacity-100 md:opacity-0"
+          !isPlaying || showSettings || isFullscreen ? "opacity-100" : "opacity-0 md:group-hover:opacity-100 md:opacity-0"
         } ${isFullscreen ? 'z-[9997]' : ''}`}>
           {/* Progress Bar - Only show for non-YouTube videos (YouTube has its own controls) */}
           {(
@@ -1023,14 +1023,16 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               )}
             </button>
 
-            {/* Settings Menu */}
-            <div className="relative settings-menu-container z-50 ml-auto">
+            {/* Settings Menu - Always visible in fullscreen */}
+            <div className={`relative settings-menu-container ml-auto ${isFullscreen ? 'z-[9998]' : 'z-50'}`}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowSettings(!showSettings);
                 }}
-                className="flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation"
+                className={`flex size-10 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30 active:bg-white/40 touch-manipulation ${
+                  isFullscreen ? 'opacity-100' : ''
+                }`}
                 aria-label="Settings"
                 type="button"
               >
