@@ -45,7 +45,15 @@ export function VoiceControlProvider({ children }: { children: ReactNode }) {
       switch (command.action) {
         case "navigate":
           if (command.params?.path) {
-            router.push(command.params.path as string);
+            const path = command.params.path as string;
+            console.log("Navigating to:", path);
+            router.push(path);
+            // Force navigation if router.push doesn't work immediately
+            setTimeout(() => {
+              if (window.location.pathname !== path) {
+                window.location.href = path;
+              }
+            }, 100);
           }
           break;
 
@@ -68,19 +76,61 @@ export function VoiceControlProvider({ children }: { children: ReactNode }) {
           } 
           // Navigation buttons
           else if (buttonAction === "navigateHome") {
+            console.log("Navigating to home");
             router.push("/");
+            setTimeout(() => {
+              if (window.location.pathname !== "/") {
+                window.location.href = "/";
+              }
+            }, 100);
           } else if (buttonAction === "navigateSubscriptions") {
+            console.log("Navigating to subscriptions");
             router.push("/subscriptions");
+            setTimeout(() => {
+              if (window.location.pathname !== "/subscriptions") {
+                window.location.href = "/subscriptions";
+              }
+            }, 100);
           } else if (buttonAction === "navigatePlaylists") {
+            console.log("Navigating to playlists");
             router.push("/playlists");
+            setTimeout(() => {
+              if (window.location.pathname !== "/playlists") {
+                window.location.href = "/playlists";
+              }
+            }, 100);
           } else if (buttonAction === "navigateStudio" || buttonAction === "upload") {
+            console.log("Navigating to studio");
             router.push("/studio");
+            setTimeout(() => {
+              if (window.location.pathname !== "/studio") {
+                window.location.href = "/studio";
+              }
+            }, 100);
           } else if (buttonAction === "navigateLive") {
+            console.log("Navigating to live");
             router.push("/live");
+            setTimeout(() => {
+              if (window.location.pathname !== "/live") {
+                window.location.href = "/live";
+              }
+            }, 100);
           } else if (buttonAction === "navigateAnalytics") {
+            console.log("Navigating to analytics");
             router.push("/analytics");
+            setTimeout(() => {
+              if (window.location.pathname !== "/analytics") {
+                window.location.href = "/analytics";
+              }
+            }, 100);
           } else if (buttonAction === "navigateGoLive") {
+            console.log("Navigating to go-live");
             router.push("/go-live");
+            setTimeout(() => {
+              if (window.location.pathname !== "/go-live") {
+                window.location.href = "/go-live";
+              }
+            }, 100);
           }
           // UI interactions
           else if (buttonAction === "openUserMenu" || buttonAction === "click user menu" || buttonAction === "click profile") {

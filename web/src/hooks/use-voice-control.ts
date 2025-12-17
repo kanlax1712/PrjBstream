@@ -195,7 +195,10 @@ function parseCommand(transcript: string): VoiceCommand | null {
     "navigate to search": "/search",
     "go to analytics": "/analytics",
     "analytics": "/analytics",
+    "go to insights": "/analytics",
     "insights": "/analytics",
+    "open insights": "/analytics",
+    "navigate to insights": "/analytics",
     "open analytics": "/analytics",
     "navigate to analytics": "/analytics",
     "go live": "/go-live",
@@ -204,9 +207,27 @@ function parseCommand(transcript: string): VoiceCommand | null {
     "navigate to go live": "/go-live",
   };
 
-  // Check for navigation commands - use includes for flexible matching
+  // Check for navigation commands - prioritize exact matches, then includes
+  // First check for exact matches
   for (const [command, path] of Object.entries(navCommands)) {
-    if (normalized.includes(command) || normalized === command) {
+    if (normalized === command) {
+      return {
+        action: "navigate",
+        params: { path },
+      };
+    }
+  }
+  
+  // Then check for includes (but be more careful about word boundaries)
+  for (const [command, path] of Object.entries(navCommands)) {
+    // Use word boundary matching for better accuracy
+    const commandWords = command.split(' ');
+    const normalizedWords = normalized.split(' ');
+    
+    // Check if all words in command are present in normalized
+    const allWordsMatch = commandWords.every(word => normalized.includes(word));
+    
+    if (allWordsMatch && normalized.includes(command)) {
       return {
         action: "navigate",
         params: { path },
@@ -273,15 +294,19 @@ function parseCommand(transcript: string): VoiceCommand | null {
     "upload": "upload",
     "upload video": "upload",
     "click upload video": "upload",
-    // Navigation buttons
+    // Navigation buttons - these should also trigger navigation
     "click home": "navigateHome",
     "click subscriptions": "navigateSubscriptions",
+    "subscriptions button": "navigateSubscriptions",
     "click playlists": "navigatePlaylists",
+    "playlists button": "navigatePlaylists",
     "click studio": "navigateStudio",
     "click creator studio": "navigateStudio",
     "click live": "navigateLive",
     "click analytics": "navigateAnalytics",
     "click insights": "navigateAnalytics",
+    "insights button": "navigateAnalytics",
+    "analytics button": "navigateAnalytics",
     "click go live": "navigateGoLive",
     // User menu actions
     "open user menu": "openUserMenu",
