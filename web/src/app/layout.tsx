@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppSessionProvider } from "@/components/providers/session-provider";
+import { VoiceControlProvider } from "@/contexts/voice-control-context";
 import { PWAInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 import { Chatbot } from "@/components/chatbot/chatbot";
 import { getSession } from "@/lib/auth-wrapper";
@@ -72,9 +73,11 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-slate-950 text-white antialiased`}
       >
         <AppSessionProvider session={session}>
-          {children}
-          <PWAInstallPrompt />
-          <Chatbot />
+          <VoiceControlProvider>
+            {children}
+            <PWAInstallPrompt />
+            <Chatbot />
+          </VoiceControlProvider>
         </AppSessionProvider>
         <Script id="register-sw" strategy="afterInteractive">
           {`

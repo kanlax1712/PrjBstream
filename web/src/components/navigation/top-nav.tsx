@@ -4,6 +4,7 @@ import { Search, Upload } from "lucide-react";
 import type { Session } from "next-auth";
 import { UserMenu } from "@/components/navigation/user-menu";
 import { SearchBar } from "@/components/search/search-bar";
+import { VoiceControlButton } from "@/components/voice/voice-control-button";
 
 type TopNavProps = {
   session: Session | null;
@@ -41,6 +42,7 @@ export function TopNav({ session, channel }: TopNavProps) {
         </div>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          <VoiceControlButton />
           {session?.user && (
             <Link
               href="/studio"

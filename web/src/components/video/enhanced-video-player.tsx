@@ -294,11 +294,89 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     return () => clearTimeout(timer);
   }, [video.id]);
 
+  // Listen for voice commands
+  useEffect(() => {
+    const handleVoiceCommand = (event: CustomEvent) => {
+      const command = event.detail?.command;
+      if (!command || !videoRef.current) return;
+
+      switch (command) {
+        case "play":
+          videoRef.current.play().catch(console.error);
+          break;
+        case "pause":
+          videoRef.current.pause();
+          break;
+        case "mute":
+          if (!isMuted) {
+            toggleMute();
+          }
+          break;
+        case "unmute":
+          if (isMuted) {
+            toggleMute();
+          }
+          break;
+        case "volumeUp":
+          if (videoRef.current) {
+            const newVolume = Math.min(1, volume + 0.1);
+            videoRef.current.volume = newVolume;
+            setVolume(newVolume);
+            setIsMuted(false);
+            videoRef.current.muted = false;
+          }
+          break;
+        case "volumeDown":
+          if (videoRef.current) {
+            const newVolume = Math.max(0, volume - 0.1);
+            videoRef.current.volume = newVolume;
+            setVolume(newVolume);
+            if (newVolume === 0) {
+              setIsMuted(true);
+              videoRef.current.muted = true;
+            }
+          }
+          break;
+        case "fullscreen":
+          if (!isFullscreen) {
+            handleFullscreen();
+          }
+          break;
+        case "exitFullscreen":
+          if (isFullscreen) {
+            handleFullscreen();
+          }
+          break;
+        case "skipForward":
+          if (videoRef.current) {
+            videoRef.current.currentTime = Math.min(
+              videoRef.current.duration,
+              videoRef.current.currentTime + 10
+            );
+          }
+          break;
+        case "skipBackward":
+          if (videoRef.current) {
+            videoRef.current.currentTime = Math.max(
+              0,
+              videoRef.current.currentTime - 10
+            );
+          }
+          break;
+      }
+    };
+
+    window.addEventListener("voice-video-command", handleVoiceCommand as EventListener);
+    return () => {
+      window.removeEventListener("voice-video-command", handleVoiceCommand as EventListener);
+    };
+  }, [isMuted, volume, isFullscreen, toggleMute, handleFullscreen]);
+
   // YouTube iframe event handling removed - all videos use regular video element
 
   useEffect(() => {
     const videoElement = videoRef.current;
-    if (!videoElement || isYouTubeVideo()) return; // Skip for YouTube videos
+    if (!videoElement) return;
 
     const updateTime = () => setCurrentTime(videoElement.currentTime);
     const updateDuration = () => setDuration(videoElement.duration);
