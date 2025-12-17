@@ -4,6 +4,16 @@ import React, { createContext, useContext, useCallback, useState, ReactNode } fr
 import { useRouter } from "next/navigation";
 import { useVoiceControl } from "@/hooks/use-voice-control";
 import { signIn, signOut } from "next-auth/react";
+import {
+  clickButtonByText,
+  clickButtonByAriaLabel,
+  clickLinkByHref,
+  focusAndClickSearchInput,
+  clickUserMenuButton,
+  clickSubscribeButton,
+  clickLikeButton,
+  clickDislikeButton,
+} from "@/utils/voice-button-clicker";
 
 type VoiceCommand = {
   action: string;
@@ -46,15 +56,60 @@ export function VoiceControlProvider({ children }: { children: ReactNode }) {
           break;
 
         case "button":
-          if (command.params?.button === "login" || command.params?.button === "sign in") {
+          const buttonAction = command.params?.button as string;
+          
+          // Authentication buttons
+          if (buttonAction === "login" || buttonAction === "sign in") {
             signIn();
-          } else if (command.params?.button === "logout" || command.params?.button === "sign out") {
+          } else if (buttonAction === "logout" || buttonAction === "sign out") {
             signOut({ callbackUrl: "/" });
-          } else if (command.params?.button === "register" || command.params?.button === "sign up") {
+          } else if (buttonAction === "register" || buttonAction === "sign up") {
             router.push("/register");
-          } else if (command.params?.button === "upload") {
+          } 
+          // Navigation buttons
+          else if (buttonAction === "navigateHome") {
+            router.push("/");
+          } else if (buttonAction === "navigateSubscriptions") {
+            router.push("/subscriptions");
+          } else if (buttonAction === "navigatePlaylists") {
+            router.push("/playlists");
+          } else if (buttonAction === "navigateStudio" || buttonAction === "upload") {
             router.push("/studio");
+          } else if (buttonAction === "navigateLive") {
+            router.push("/live");
+          } else if (buttonAction === "navigateAnalytics") {
+            router.push("/analytics");
+          } else if (buttonAction === "navigateGoLive") {
+            router.push("/go-live");
           }
+          // UI interactions
+          else if (buttonAction === "openUserMenu" || buttonAction === "click user menu" || buttonAction === "click profile") {
+            clickUserMenuButton();
+          } else if (buttonAction === "closeUserMenu") {
+            // Click outside to close or press Escape
+            document.body.click();
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+          } else if (buttonAction === "focusSearch") {
+            focusAndClickSearchInput();
+          } else if (buttonAction === "subscribe") {
+            clickSubscribeButton();
+          } else if (buttonAction === "like") {
+            clickLikeButton();
+          } else if (buttonAction === "dislike") {
+            clickDislikeButton();
+          } else if (buttonAction === "watchNow" || buttonAction === "playVideo") {
+            // Try multiple strategies to find watch/play button
+            if (!clickButtonByText("watch now") && !clickButtonByText("watch")) {
+              clickButtonByText("play");
+            }
+          }
+          
+          // Dispatch button click event for any button that wasn't handled above
+          window.dispatchEvent(
+            new CustomEvent("voice-button-click", {
+              detail: { button: buttonAction },
+            })
+          );
           break;
 
         case "video":

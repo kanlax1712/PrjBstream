@@ -161,33 +161,52 @@ export function useVoiceControl(options: VoiceControlOptions = {}) {
 function parseCommand(transcript: string): VoiceCommand | null {
   const normalized = transcript.toLowerCase().trim();
   
-  // Navigation commands
+  // Navigation commands - more flexible matching
   const navCommands: Record<string, string> = {
     "go to home": "/",
     "go home": "/",
     "home": "/",
+    "navigate to home": "/",
+    "open home": "/",
     "go to login": "/login",
     "login": "/login",
+    "open login": "/login",
+    "navigate to login": "/login",
     "go to live": "/live",
     "live": "/live",
+    "open live": "/live",
+    "navigate to live": "/live",
     "go to studio": "/studio",
     "studio": "/studio",
     "creator studio": "/studio",
+    "open studio": "/studio",
+    "navigate to studio": "/studio",
     "go to subscriptions": "/subscriptions",
     "subscriptions": "/subscriptions",
+    "open subscriptions": "/subscriptions",
+    "navigate to subscriptions": "/subscriptions",
     "go to playlists": "/playlists",
     "playlists": "/playlists",
+    "open playlists": "/playlists",
+    "navigate to playlists": "/playlists",
     "go to search": "/search",
     "search": "/search",
+    "open search": "/search",
+    "navigate to search": "/search",
     "go to analytics": "/analytics",
     "analytics": "/analytics",
     "insights": "/analytics",
+    "open analytics": "/analytics",
+    "navigate to analytics": "/analytics",
     "go live": "/go-live",
+    "go to go live": "/go-live",
+    "open go live": "/go-live",
+    "navigate to go live": "/go-live",
   };
 
-  // Check for navigation commands
+  // Check for navigation commands - use includes for flexible matching
   for (const [command, path] of Object.entries(navCommands)) {
-    if (normalized.includes(command)) {
+    if (normalized.includes(command) || normalized === command) {
       return {
         action: "navigate",
         params: { path },
@@ -235,21 +254,59 @@ function parseCommand(transcript: string): VoiceCommand | null {
     }
   }
 
-  // Button/action commands
+  // Button/action commands - comprehensive list
   const buttonCommands: Record<string, string> = {
+    // Authentication
     "click login": "login",
-    "login": "login",
+    "click sign in": "login",
     "sign in": "login",
+    "click sign out": "logout",
+    "click logout": "logout",
     "sign out": "logout",
     "logout": "logout",
+    "click sign up": "register",
+    "click register": "register",
     "sign up": "register",
     "register": "register",
+    // Upload/Studio
+    "click upload": "upload",
     "upload": "upload",
     "upload video": "upload",
+    "click upload video": "upload",
+    // Navigation buttons
+    "click home": "navigateHome",
+    "click subscriptions": "navigateSubscriptions",
+    "click playlists": "navigatePlaylists",
+    "click studio": "navigateStudio",
+    "click creator studio": "navigateStudio",
+    "click live": "navigateLive",
+    "click analytics": "navigateAnalytics",
+    "click insights": "navigateAnalytics",
+    "click go live": "navigateGoLive",
+    // User menu actions
+    "open user menu": "openUserMenu",
+    "click user menu": "openUserMenu",
+    "click profile": "openUserMenu",
+    "close user menu": "closeUserMenu",
+    // Video actions
+    "click subscribe": "subscribe",
+    "subscribe": "subscribe",
+    "click like": "like",
+    "like": "like",
+    "click dislike": "dislike",
+    "dislike": "dislike",
+    "click watch now": "watchNow",
+    "watch now": "watchNow",
+    "click play video": "playVideo",
+    "play video": "playVideo",
+    // Search
+    "click search": "focusSearch",
+    "focus search": "focusSearch",
+    "open search": "focusSearch",
   };
 
   for (const [command, action] of Object.entries(buttonCommands)) {
-    if (normalized.includes(command)) {
+    if (normalized.includes(command) || normalized === command) {
       return {
         action: "button",
         params: { button: action },
