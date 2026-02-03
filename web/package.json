@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "build:mobile": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
@@ -15,7 +16,13 @@
     "db:sync-videos": "node scripts/sync-video-data.mjs",
     "db:fix-thumbnails": "node scripts/fix-thumbnails-local.mjs",
     "db:verify": "node scripts/verify-prisma-accelerate.mjs",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "android:build": "npm run build && npx cap sync android && cd android && ./gradlew assembleRelease",
+    "android:build:debug": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug",
+    "android:setup": "./scripts/setup-android-env.sh",
+    "android:apk": "./scripts/build-android-apk.sh"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
@@ -32,6 +39,8 @@
     "@vercel/blob": "^2.0.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
+    "google-auth-library": "^9.0.0",
+    "jose": "^5.2.0",
     "googleapis": "^166.0.0",
     "lucide-react": "^0.554.0",
     "next": "16.0.3",
@@ -45,6 +54,9 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.3"
   }

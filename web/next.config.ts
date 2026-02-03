@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // Remove standalone output for Vercel deployment
   images: {
     remotePatterns: [
+      { protocol: "http", hostname: "localhost", pathname: "/uploads/**" },
+      { protocol: "http", hostname: "127.0.0.1", pathname: "/uploads/**" },
+      { protocol: "https", hostname: "bstreamtest.vercel.app" },
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "api.dicebear.com" },
       { protocol: "https", hostname: "storage.googleapis.com" },

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ThumbnailImage } from "@/components/video/thumbnail-image";
 import Link from "next/link";
 import { Play } from "lucide-react";
 import { formatDuration, formatRelative } from "@/lib/format";
@@ -73,7 +73,7 @@ export function FeaturedHero({ video }: Props) {
           </div>
         </div>
         <div className="relative min-h-64 overflow-hidden rounded-3xl border border-white/5 bg-slate-900">
-          <Image
+          <ThumbnailImage
             src={video.thumbnailUrl && 
               !video.thumbnailUrl.includes("placeholder") && 
               !video.thumbnailUrl.includes("No Thumbnail") &&

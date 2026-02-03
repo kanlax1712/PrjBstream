@@ -83,9 +83,12 @@ export function useVoiceControl(options: VoiceControlOptions = {}) {
       };
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error("Speech recognition error:", event.error);
         setIsListening(false);
-        
+        // "aborted" is normal when user stops or recognition is stopped programmatically — don't treat as error
+        if (event.error === "aborted") {
+          setError(null);
+          return;
+        }
         switch (event.error) {
           case "no-speech":
             setError("No speech detected. Please try again.");
@@ -93,22 +96,27 @@ export function useVoiceControl(options: VoiceControlOptions = {}) {
           case "audio-capture":
             setError("No microphone found. Please check your microphone.");
             break;
-          case "not-allowed":
-            setError("Microphone permission denied. Please enable microphone access.");
+          case "not-allowed": {
+            const isNativeApp = typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
+            setError(isNativeApp
+              ? "Microphone permission denied. Please enable permissions for Bstream in your device Settings (Settings → Apps → Bstream → Permissions)."
+              : "Microphone permission denied. Please enable microphone access.");
             break;
+          }
           case "network":
             setError("Network error. Please check your connection.");
             break;
           default:
             setError(`Speech recognition error: ${event.error}`);
         }
+        console.warn("Speech recognition error:", event.error, event.message || "");
       };
 
       recognition.onend = () => {
         setIsListening(false);
       };
 
-      recognitionRef.current = recognition;
+      recognitionRef.current = recognition as any;
     } else {
       setIsSupported(false);
       setError("Speech recognition is not supported in your browser.");

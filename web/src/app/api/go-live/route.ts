@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { getSessionFromBearerToken } from "@/lib/auth-api-token";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+
+async function getSession(request: NextRequest) {
+  const bearer = await getSessionFromBearerToken(request);
+  const cookie = await auth();
+  return bearer ?? cookie;
+}
 
 const goLiveSchema = z.object({
   title: z.string().min(3).max(120),
@@ -12,7 +19,7 @@ const goLiveSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getSession(request);
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
@@ -178,7 +185,7 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getSession(request);
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },

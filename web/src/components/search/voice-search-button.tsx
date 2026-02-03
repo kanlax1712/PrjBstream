@@ -40,7 +40,11 @@ export function VoiceSearchButton({ onTranscript, disabled = false }: Props) {
         console.error("Speech recognition error:", event.error);
         setIsListening(false);
         if (event.error === "not-allowed") {
-          alert("Microphone permission denied. Please allow microphone access in your browser settings.");
+          const isNativeApp = typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
+          const message = isNativeApp
+            ? "Microphone permission denied. Please enable permissions for Bstream in your device Settings (Settings → Apps → Bstream → Permissions)."
+            : "Microphone permission denied. Please allow microphone access in your browser settings.";
+          alert(message);
         }
       };
 

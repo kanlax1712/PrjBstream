@@ -12,8 +12,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const searchTerm = query.trim().toLowerCase();
+    const insensitive = { mode: "insensitive" as const };
 
-    // Search videos by title, description, or tags
+    // Search videos by title, description, or tags (substring match, any position, case-insensitive)
     const videos = await prisma.video.findMany({
       where: {
         AND: [
@@ -21,9 +22,9 @@ export async function GET(request: NextRequest) {
           { status: "READY" },
           {
             OR: [
-              { title: { contains: searchTerm } },
-              { description: { contains: searchTerm } },
-              { tags: { contains: searchTerm } },
+              { title: { contains: searchTerm, ...insensitive } },
+              { description: { contains: searchTerm, ...insensitive } },
+              { tags: { contains: searchTerm, ...insensitive } },
             ],
           },
         ],
@@ -42,13 +43,13 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    // Search channels by name or handle
+    // Search channels by name, handle, or description (substring match, any position, case-insensitive)
     const channels = await prisma.channel.findMany({
         where: {
           OR: [
-            { name: { contains: searchTerm } },
-            { handle: { contains: searchTerm } },
-            { description: { contains: searchTerm } },
+            { name: { contains: searchTerm, ...insensitive } },
+            { handle: { contains: searchTerm, ...insensitive } },
+            { description: { contains: searchTerm, ...insensitive } },
           ],
         },
       select: {

@@ -95,6 +95,23 @@ export function GoLiveClient() {
         );
       }
 
+      // On Android/iOS app: request CAMERA + RECORD_AUDIO at native level first so getUserMedia works in WebView
+      const cap = typeof window !== "undefined" ? (window as any).Capacitor : null;
+      if (cap?.isNativePlatform?.()) {
+        try {
+          const { registerPlugin } = await import("@capacitor/core");
+          const BstreamMediaPermissions = registerPlugin<{ requestMediaPermissions: () => Promise<{ granted: boolean }> }>("BstreamMediaPermissions");
+          const result = await BstreamMediaPermissions.requestMediaPermissions();
+          if (!result?.granted) {
+            setError("Camera and microphone access was denied. Please enable permissions for Bstream in your device Settings (Settings → Apps → Bstream → Permissions).");
+            setIsLoading(false);
+            return;
+          }
+        } catch (pluginErr) {
+          console.warn("Native media permissions plugin failed, trying getUserMedia anyway:", pluginErr);
+        }
+      }
+
       // Check permissions internally
       let cameraPermission = "prompt";
       let microphonePermission = "prompt";
@@ -214,21 +231,32 @@ export function GoLiveClient() {
       
     } catch (err: any) {
       console.error("Error accessing camera:", err);
-      
+      const isNativeApp = typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
+      const msg = (err?.message || "").toLowerCase();
+      const isPermissionDenied =
+        err?.name === "NotAllowedError" ||
+        err?.name === "PermissionDeniedError" ||
+        msg.includes("denied") ||
+        msg.includes("permission") ||
+        msg.includes("not allowed");
+
       let errorMessage = "Failed to access camera and microphone.";
-      
-      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-        errorMessage = "Camera and microphone access was denied. Please check browser permissions for localhost:3000.";
-      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+      if (isPermissionDenied) {
+        errorMessage = isNativeApp
+          ? "Camera and microphone access was denied. Please enable permissions for Bstream in your device Settings (Settings → Apps → Bstream → Permissions)."
+          : "Camera and microphone access was denied. Please allow camera and microphone for this site in your browser settings.";
+      } else if (err?.name === "NotFoundError" || err?.name === "DevicesNotFoundError") {
         errorMessage = "No camera or microphone found. Please connect a device.";
-      } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+      } else if (err?.name === "NotReadableError" || err?.name === "TrackStartError") {
         errorMessage = "Camera or microphone is already in use by another application.";
-      } else if (err.name === "OverconstrainedError") {
+      } else if (err?.name === "OverconstrainedError") {
         errorMessage = "The selected device doesn't support the required settings.";
-      } else if (err.message) {
+      } else if (err?.message && !(isNativeApp && (msg.includes("localhost") || msg.includes("browser permission")))) {
         errorMessage = err.message;
       }
-      
+      if (isNativeApp && (errorMessage.includes("localhost") || errorMessage.toLowerCase().includes("browser permission"))) {
+        errorMessage = "Camera and microphone access was denied. Please enable permissions for Bstream in your device Settings (Settings → Apps → Bstream → Permissions).";
+      }
       setError(errorMessage);
       setCameraActive(false);
     } finally {

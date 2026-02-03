@@ -47,6 +47,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   if (query.trim()) {
     const searchTerm = query.trim().toLowerCase();
+    const insensitive = { mode: "insensitive" as const };
 
     [videos, channels] = await Promise.all([
       prisma.video.findMany({
@@ -56,9 +57,9 @@ export default async function SearchPage({ searchParams }: Props) {
             { status: "READY" },
             {
               OR: [
-                { title: { contains: searchTerm } },
-                { description: { contains: searchTerm } },
-                { tags: { contains: searchTerm } },
+                { title: { contains: searchTerm, ...insensitive } },
+                { description: { contains: searchTerm, ...insensitive } },
+                { tags: { contains: searchTerm, ...insensitive } },
               ],
             },
           ],
@@ -79,9 +80,9 @@ export default async function SearchPage({ searchParams }: Props) {
       prisma.channel.findMany({
         where: {
           OR: [
-            { name: { contains: searchTerm } },
-            { handle: { contains: searchTerm } },
-            { description: { contains: searchTerm } },
+            { name: { contains: searchTerm, ...insensitive } },
+            { handle: { contains: searchTerm, ...insensitive } },
+            { description: { contains: searchTerm, ...insensitive } },
           ],
         },
         select: {

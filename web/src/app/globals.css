@@ -8,14 +8,16 @@
   --card: 224 50% 6%;
   --accent: 198 93% 60%;
   --accent-muted: 199 89% 48%;
+  /* System font stack so app loads without Google Fonts */
+  --font-geist-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-geist-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
 }
 
 body {
   min-height: 100vh;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  font-family: var(--font-geist-sans);
 }
 
 * {
@@ -67,6 +69,12 @@ body {
 
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Bottom nav on Android/iOS: ensure space above system gesture bar (env can be 0 in WebView) */
+.mobile-nav-safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 24px);
+  min-height: 64px;
 }
 
 .safe-left {

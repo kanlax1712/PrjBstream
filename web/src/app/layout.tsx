@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { AppSessionProvider } from "@/components/providers/session-provider";
 import { VoiceControlProvider } from "@/contexts/voice-control-context";
 import { PWAInstallPrompt } from "@/components/pwa/pwa-install-prompt";
@@ -8,15 +7,7 @@ import { getSession } from "@/lib/auth-wrapper";
 import Script from "next/script";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Use system fonts so the app loads even when Google Fonts is blocked or slow (e.g. corporate networks, offline)
 
 export const metadata: Metadata = {
   title: "Bstream Studio",
@@ -50,6 +41,7 @@ export const viewport = {
   maximumScale: 5,
   userScalable: true,
   themeColor: "#06b6d4",
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -69,9 +61,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Bstream" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-slate-950 text-white antialiased`}
-      >
+      <body className="min-h-screen bg-slate-950 text-white antialiased font-sans">
         <AppSessionProvider session={session}>
           <VoiceControlProvider>
             {children}

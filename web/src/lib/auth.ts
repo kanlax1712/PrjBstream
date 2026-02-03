@@ -58,7 +58,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         : "next-auth.session-token",
       options: {
         httpOnly: true,
-        sameSite: "lax",
+        // Use "none" in production so session cookie is sent in Android/iOS WebView on all requests (including RSC fetch on client-side nav)
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production",
       },

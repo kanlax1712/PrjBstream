@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Settings, Download, PictureInPicture, Play, Pause, Maximize, Minimize, Volume2, VolumeX, ThumbsUp, ThumbsDown, MoreVertical } from "lucide-react";
 import { formatDuration, formatRelative } from "@/lib/format";
+import { getAbsoluteThumbnailUrl } from "@/lib/thumbnail-url";
 import { SubscribeButton } from "@/components/video/subscribe-button";
 import { VideoAd } from "@/components/video/video-ad";
 import type { Session } from "next-auth";
@@ -219,42 +220,30 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
     return url;
   };
 
-  // Initialize video source - all videos use API route
-  const [videoSrc, setVideoSrc] = useState<string>(() => {
-    // Always use API route which handles both external and local videos
-    // This avoids CORS issues and URL safety checks
-    return `/api/video/${video.id}/stream`;
-  });
+  // Build absolute video URL for Android WebView/Capacitor (relative URLs can fail on some devices)
+  const getStreamUrl = (path: string) => {
+    if (typeof window !== "undefined" && window.location?.origin) {
+      return `${window.location.origin}${path.startsWith("/") ? path : `/${path}`}`;
+    }
+    return path;
+  };
+
+  const streamPath = `/api/video/${video.id}/stream`;
+  const [videoSrc, setVideoSrc] = useState<string>(() => getStreamUrl(streamPath));
 
   // Update video source when video changes with error handling
   useEffect(() => {
     try {
-      // Don't load video if ad is showing - wait until ad completes
-      if (showAd && !adCompleted) {
-        return;
-      }
-      
-      // All videos are now stored locally - no YouTube iframe handling
-      
-      // Always use API route which proxies external URLs to avoid CORS and security issues
-      const finalUrl = `/api/video/${video.id}/stream`;
-      
-      console.log("Setting video source:", { 
-        originalUrl: video.videoUrl, 
-        finalUrl, 
-        videoId: video.id 
-      });
-      
+      if (showAd && !adCompleted) return;
+      // Use absolute URL in app/WebView (Capacitor) for reliable playback on Android
+      const finalUrl = getStreamUrl(streamPath);
       setVideoSrc(finalUrl);
       setRetryCount(0);
       setVideoError(null);
       setIsLoading(true);
-      
       if (videoRef.current) {
         try {
-          // Set crossOrigin for API route
           videoRef.current.crossOrigin = "anonymous";
-          // Set src attribute
           videoRef.current.src = finalUrl;
           videoRef.current.load();
         } catch (error) {
@@ -542,15 +531,13 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
         try {
           const response = await fetch(newUrl, { method: "HEAD" });
           if (!response.ok && response.status !== 206 && response.status !== 200) {
-            // Quality not available, fallback to original
             console.warn(`Quality ${quality} not available (status: ${response.status}), using original`);
-            newUrl = `/api/video/${video.id}/stream`;
+            newUrl = getStreamUrl(`/api/video/${video.id}/stream`);
             setSelectedQuality("auto");
           }
         } catch (fetchError) {
-          // Network error or CORS issue - fallback to original
           console.warn(`Failed to check quality ${quality}, using original:`, fetchError);
-          newUrl = `/api/video/${video.id}/stream`;
+          newUrl = getStreamUrl(`/api/video/${video.id}/stream`);
           setSelectedQuality("auto");
         }
       }
@@ -585,8 +572,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
       setVideoError("Failed to change video quality. Using original quality.");
       setIsLoading(false);
       
-      // Fallback to original quality
-      const fallbackUrl = `/api/video/${video.id}/stream`;
+      const fallbackUrl = getStreamUrl(`/api/video/${video.id}/stream`);
       setVideoSrc(fallbackUrl);
       setSelectedQuality("auto");
       if (videoRef.current) {
@@ -786,23 +772,19 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             onClick={handleVideoClick}
           >
             {(() => {
-              // Get thumbnail URL - handle YouTube, regular videos, and defaults
               let thumbnailUrl: string | null = null;
-              
               if (video.thumbnailUrl && 
                 !video.thumbnailUrl.includes("placeholder") && 
                 !video.thumbnailUrl.includes("No Thumbnail") &&
                 !video.thumbnailUrl.startsWith("data:")) {
-                // Use provided thumbnail
                 thumbnailUrl = video.thumbnailUrl;
               } else {
-                // Default thumbnail
                 thumbnailUrl = "/uploads/default-thumbnail.svg";
               }
-              
-              return thumbnailUrl ? (
+              const absoluteUrl = getAbsoluteThumbnailUrl(thumbnailUrl);
+              return absoluteUrl ? (
                 <img
-                  src={thumbnailUrl}
+                  src={absoluteUrl}
                   alt={video.title}
                   className="size-full object-cover pointer-events-none"
                 />
@@ -828,7 +810,7 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
             !video.thumbnailUrl.includes("placeholder") && 
             !video.thumbnailUrl.includes("No Thumbnail") &&
             !video.thumbnailUrl.startsWith("data:")
-            ? video.thumbnailUrl
+            ? getAbsoluteThumbnailUrl(video.thumbnailUrl)
             : undefined}
           className="size-full"
           playsInline
@@ -887,24 +869,21 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
               // If quality-specific URL failed, try falling back to original stream
               if (videoSrc && videoSrc.includes("/quality/")) {
                 console.log("Quality-specific URL failed, falling back to original stream");
-                fallbackUrl = `/api/video/${video.id}/stream`;
+                fallbackUrl = getStreamUrl(`/api/video/${video.id}/stream`);
                 setSelectedQuality("auto");
                 if (videoRef.current) {
                   videoRef.current.crossOrigin = "anonymous";
                 }
               } else if (video.videoUrl.startsWith("http://") || video.videoUrl.startsWith("https://")) {
-                // If API route failed, try direct external URL as fallback (only for non-YouTube)
                 console.log("API route failed, trying direct external URL fallback");
                 fallbackUrl = video.videoUrl;
-                // Remove crossOrigin for direct external URLs
                 if (videoRef.current) {
                   videoRef.current.removeAttribute("crossorigin");
                   videoRef.current.crossOrigin = null;
                 }
               } else {
-                // For local files, retry API route
-                console.log("API route failed, retrying");
-                fallbackUrl = `/api/video/${video.id}/stream`;
+                console.log("API route failed, retrying with absolute URL");
+                fallbackUrl = getStreamUrl(`/api/video/${video.id}/stream`);
                 if (videoRef.current) {
                   videoRef.current.crossOrigin = "anonymous";
                 }
@@ -929,10 +908,10 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                   errorMessage = "Network error. Please check your connection and try again.";
                   break;
                 case error.MEDIA_ERR_DECODE:
-                  errorMessage = "Video format not supported or corrupted.";
+                  errorMessage = "This video format isn't supported on this device. Try another video or tap Retry.";
                   break;
                 case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                  errorMessage = "Video format not supported on this device.";
+                  errorMessage = "This video can't play on this device. Try another video or tap Retry.";
                   break;
                 default:
                   errorMessage = `Video error (code: ${error.code}). Please try refreshing.`;
@@ -998,14 +977,12 @@ export function EnhancedVideoPlayer({ video, session, isSubscribed }: Props) {
                 onClick={() => {
                   setVideoError(null);
                   setRetryCount(0);
-                  // Try API route first, then fallback
-                  const newUrl = retryCount === 0 ? getVideoUrl(false) : getVideoUrl(true);
-                  if (newUrl) {
-                    setVideoSrc(newUrl);
-                    if (videoRef.current) {
-                      videoRef.current.src = newUrl;
-                      videoRef.current.load();
-                    }
+                  const baseUrl = retryCount === 0 ? getVideoUrl(false) : getVideoUrl(true);
+                  const newUrl = baseUrl ? (baseUrl.startsWith("http") ? baseUrl : getStreamUrl(baseUrl.startsWith("/") ? baseUrl : `/${baseUrl}`)) : getStreamUrl(streamPath);
+                  setVideoSrc(newUrl);
+                  if (videoRef.current) {
+                    videoRef.current.src = newUrl;
+                    videoRef.current.load();
                   }
                 }}
                 className="rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-cyan-600"
